@@ -75,8 +75,6 @@ class AppointmentController extends Controller
      */
     public function store(Request $request)
     {
-        return response()->json('ok');
-        //
         try {
 
         $role = [
@@ -137,7 +135,7 @@ class AppointmentController extends Controller
 
             if ($result) {
                 Mail::to(Auth::user()->email)->send(new AppointmentMail($usermaildata));
-               $notifi = $this->notification(Auth::user()->device_token);
+            //    $notifi = $this->notification(Auth::user()->device_token);
 
                 $barber = Barber::find($request->barber_id);
                $user = User::find($barber->barber_of);
