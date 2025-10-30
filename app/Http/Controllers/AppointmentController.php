@@ -76,9 +76,10 @@ class AppointmentController extends Controller
     public function store(Request $request)
     {
         //
+        return response()->json('ok');
         try {
 
-        $role = [  
+        $role = [
             'time'      => 'required',
             'barber_id' => 'required',
             'type'      => 'required',
@@ -133,11 +134,11 @@ class AppointmentController extends Controller
                 'salon'     => $barber->barber_of,
                 'appType' => $request->appType,
             );
-            
+
             if ($result) {
                 Mail::to(Auth::user()->email)->send(new AppointmentMail($usermaildata));
                $notifi = $this->notification(Auth::user()->device_token);
-               
+
                 $barber = Barber::find($request->barber_id);
                $user = User::find($barber->barber_of);
 
@@ -174,7 +175,7 @@ class AppointmentController extends Controller
     public function notification($token)
     {
 
-        try {  
+        try {
 
             $SERVER_API_KEY = 'AAAA3HaTkiY:APA91bH7w0D8dBQDGLith9YEOMwbW6y-uUPabDzaDp8uos84uIDIAryeWUU9o3d7KdczvjlC-8GrqCZcIpT1Qj_j1mjP-DmGXFSkbfthAp2ZDKBG6QtQ2B3zVLvDBKwnH6ANfnwau3fL';
             // $token = ;
@@ -184,37 +185,37 @@ class AppointmentController extends Controller
                 ),
                 "notification" => [
                     "title" => "Appointment Notification",
-                    "body" => 'Your appointment has been booked with us',  
+                    "body" => 'Your appointment has been booked with us',
                 ]
             ];
             $dataString = json_encode($data);
-        
+
             $headers = [
                 'Authorization: key='.$SERVER_API_KEY,
                 'Content-Type: application/json',
             ];
-        
+
             $ch = curl_init();
-        
+
             curl_setopt($ch, CURLOPT_URL, 'https://fcm.googleapis.com/fcm/send');
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $dataString);
-                
+
             $response = curl_exec($ch);
-    
+
             return response()->json([
                 'success' => true,
                 'message' => $response,
             ]);
 
-            
+
 
 
         } catch (\Exception $e) {
-            
+
             return response()->json([
                 'success' => false,
                 'Error' => $e->getMessage(),
@@ -225,7 +226,7 @@ class AppointmentController extends Controller
     public function barbernotification($token)
     {
 
-        try {  
+        try {
 
             $SERVER_API_KEY = 'AAAA3HaTkiY:APA91bH7w0D8dBQDGLith9YEOMwbW6y-uUPabDzaDp8uos84uIDIAryeWUU9o3d7KdczvjlC-8GrqCZcIpT1Qj_j1mjP-DmGXFSkbfthAp2ZDKBG6QtQ2B3zVLvDBKwnH6ANfnwau3fL';
             // $token = ;
@@ -235,37 +236,37 @@ class AppointmentController extends Controller
                 ),
                 "notification" => [
                     "title" => "Appointment Notification",
-                    "body" => 'You have New Appointment',  
+                    "body" => 'You have New Appointment',
                 ]
             ];
             $dataString = json_encode($data);
-        
+
             $headers = [
                 'Authorization: key='.$SERVER_API_KEY,
                 'Content-Type: application/json',
             ];
-        
+
             $ch = curl_init();
-        
+
             curl_setopt($ch, CURLOPT_URL, 'https://fcm.googleapis.com/fcm/send');
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $dataString);
-                
+
             $response = curl_exec($ch);
-    
+
             return response()->json([
                 'success' => true,
                 'message' => $response,
             ]);
 
-            
+
 
 
         } catch (\Exception $e) {
-            
+
             return response()->json([
                 'success' => false,
                 'Error' => $e->getMessage(),
@@ -277,10 +278,10 @@ class AppointmentController extends Controller
 
     public function appointmentajax(Request $request)
     {
-        $role = [  
+        $role = [
             'time'      => 'required',
             'slote'     => 'required'
-            
+
         ];
 
         $validateData = Validator::make($request->all(),$role);
@@ -297,16 +298,16 @@ class AppointmentController extends Controller
         $app = Appointment::where([
             'date' => $request->time,
             'slote_id' => $request->slote,
-           
+
         ])->count();
-        
+
         if ($app > 0) {
             return response()->json([
                 'Message' => 'Slot Is Booked',
             ]);
         }else{
             return response()->json([
-                
+
                 'Message' => 'Slot Is Avaliable',
             ]);
         }
@@ -325,7 +326,7 @@ class AppointmentController extends Controller
 
         try {
             $app         = Appointment::find($id);
-    
+
             return response()->json($app);
 
         } catch (\Exception $e) {
@@ -361,8 +362,8 @@ class AppointmentController extends Controller
 
         }
     }
-	
-	
+
+
 	    public function updateappointment(Request $request){
         try {
         $store = Appointment::find($request->id);
@@ -438,10 +439,10 @@ class AppointmentController extends Controller
 
     public function cancleapp(Request $request)
     {
-        
+
         try {
             // return $request;
-            
+
             $data = [
                 'barber_id'      => $request->barber_id,
                 'user_id'        => $request->user_id,
@@ -450,7 +451,7 @@ class AppointmentController extends Controller
             ];
             $run = Cancle::create($data);
 
-           
+
 
             if($run){
 
@@ -486,7 +487,7 @@ class AppointmentController extends Controller
 
     public function cancleApi($id)
     {
-        
+
         try {
             // return $request;
             $app         = Appointment::find($id);
@@ -530,14 +531,14 @@ class AppointmentController extends Controller
             $logStatus = "TOTAL-REFUND";
             $amount    = ($app->wallet->debit + $app->wallet->com_amount);
         }
-        
+
 
        $refund =  \Stripe\Refund::create([
             'charge'   => $token,
             'amount'   => $amount * 100,
         ]);
 
-        
+
 
 
         Wallet::where('appointment_id',$id)->delete();
@@ -569,7 +570,7 @@ class AppointmentController extends Controller
                 'description'    => 'Refund Payment',
             );
         }
-        
+
 
         $run = Wallet::create($paymentData);
         if($run){
@@ -583,7 +584,7 @@ class AppointmentController extends Controller
                     'payment'        => $amount,
                 ];
                 AppointmentLog::create($log);
-                
+
                 Mail::to($app->customer->email)->send(new RefundPayment());
                 return redirect()->back();
             }
