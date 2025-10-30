@@ -76,7 +76,7 @@ class AppointmentController extends Controller
     public function store(Request $request)
     {
         //
-        return response()->json('ok');
+        // return response()->json('ok');
         try {
 
         $role = [
