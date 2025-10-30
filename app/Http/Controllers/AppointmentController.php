@@ -140,9 +140,9 @@ class AppointmentController extends Controller
                 $barber = Barber::find($request->barber_id);
                $user = User::find($barber->barber_of);
 
-               if($user->device_token != null){
-                    $notifi2 = $this->barbernotification($user->device_token);
-                }
+            //    if($user->device_token != null){
+            //         $notifi2 = $this->barbernotification($user->device_token);
+            //     }
 
                 $log = [
                     'appointment_id' => $result->id,
