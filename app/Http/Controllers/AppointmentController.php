@@ -134,15 +134,16 @@ class AppointmentController extends Controller
             );
 
             if ($result) {
-                Mail::to(Auth::user()->email)->send(new AppointmentMail($usermaildata));
+                // Mail::to(Auth::user()->email)->send(new AppointmentMail($usermaildata));
             //    $notifi = $this->notification(Auth::user()->device_token);
 
                 $barber = Barber::find($request->barber_id);
                $user = User::find($barber->barber_of);
 
-            //    if($user->device_token != null){
-            //         $notifi2 = $this->barbernotification($user->device_token);
-            //     }
+               return response()->json($user);
+               if($user->device_token != null){
+                    // $notifi2 = $this->barbernotification($user->device_token);
+                }
 
                 $log = [
                     'appointment_id' => $result->id,
@@ -235,6 +236,59 @@ class AppointmentController extends Controller
                 "notification" => [
                     "title" => "Appointment Notification",
                     "body" => 'You have New Appointment',
+                ]
+            ];
+            $dataString = json_encode($data);
+
+            $headers = [
+                'Authorization: key='.$SERVER_API_KEY,
+                'Content-Type: application/json',
+            ];
+
+            $ch = curl_init();
+
+            curl_setopt($ch, CURLOPT_URL, 'https://fcm.googleapis.com/fcm/send');
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $dataString);
+
+            $response = curl_exec($ch);
+
+            return response()->json([
+                'success' => true,
+                'message' => $response,
+            ]);
+
+
+
+
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'success' => false,
+                'Error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+
+
+    public function sendNotification($token, $title, $body)
+    {
+
+        try {
+
+            $SERVER_API_KEY = 'AAAA3HaTkiY:APA91bH7w0D8dBQDGLith9YEOMwbW6y-uUPabDzaDp8uos84uIDIAryeWUU9o3d7KdczvjlC-8GrqCZcIpT1Qj_j1mjP-DmGXFSkbfthAp2ZDKBG6QtQ2B3zVLvDBKwnH6ANfnwau3fL';
+            // $token = ;
+            $data = [
+                "registration_ids" =>   array (
+                    $token
+                ),
+                "notification" => [
+                    "title" => $title,
+                    "body" => $body,
                 ]
             ];
             $dataString = json_encode($data);

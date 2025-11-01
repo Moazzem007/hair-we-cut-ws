@@ -37,7 +37,7 @@ use App\Http\Controllers\CustomerAuthController;
 
 // Cateogry
 use App\Http\Controllers\CustomerController;
-
+use App\Http\Controllers\FcmController;
 // Products Payments
 use App\Http\Controllers\OrderController;
 
@@ -346,3 +346,6 @@ Route::group(['prefix' => 'customer'], function () {
     });
 
 });
+
+
+Route::post('sendNotification', [FcmController::class, 'sendNotification']);
