@@ -8,6 +8,7 @@ use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
 use Kreait\Firebase\Messaging\MulticastSendReport;
 use GuzzleHttp\Client as GuzzleClient;
+use Illuminate\Support\Facades\Log;
 
 class FcmController extends Controller
 {
@@ -56,9 +57,21 @@ class FcmController extends Controller
                 ->withNotification($notification);
 
             $response = $this->messaging->send($message);
+            
+            // Log the successful notification response
+            Log::info('FCM Notification Sent Successfully', [
+                'token' => $token,
+                'title' => $title,
+                'body' => $body,
+                'messageId' => $response
+            ]);
 
-            // Kreait returns a message ID string on success. Return it for debugging.
-            return response()->json(['success' => true, 'messageId' => $response]);
+            // Return success response with message ID
+            return response()->json([
+                'success' => true, 
+                'messageId' => $response,
+                'message' => 'Notification sent successfully'
+            ]);
         } catch (\Kreait\Firebase\Exception\MessagingException $e) {
             // Messaging related exception (invalid token, etc)
             return response()->json(['success' => false, 'type' => 'messaging', 'error' => $e->getMessage()], 500);
