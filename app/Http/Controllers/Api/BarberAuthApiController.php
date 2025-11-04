@@ -105,9 +105,9 @@ class BarberAuthApiController extends Controller
                 'salon'    => 'required',
                 'lat'      => 'required',
                 'lng'      => 'required',
-                'town'    =>'required',
-                'postcode'=>'required',
-                'address2'=>'required',
+                // 'town'    =>'required',
+                // 'postcode'=>'required',
+                // 'address2'=>'required',
                 'password' => 'required|confirmed|min:8',
             ];
 
@@ -136,9 +136,9 @@ class BarberAuthApiController extends Controller
                 'email'    => $request->email,
                 'contact'  => $request->contact,
                 'address'  => $request->address,
-                'address2' => $request->address2,
-                'town'     => $request->town,
-                'postcode' => $request->postcode,
+                // 'address2' => $request->address2,
+                // 'town'     => $request->town,
+                // 'postcode' => $request->postcode,
                 'lat'      => $request->lat,
                 'lng'      => $request->lng,
                 'salon'    => $request->salon,
@@ -158,7 +158,7 @@ class BarberAuthApiController extends Controller
             );
 
             if ($result){
-                Mail::to($request->email)->send(new BarberSignUp($dataMail));
+                // Mail::to($request->email)->send(new BarberSignUp($dataMail));
 
                  return response()->json([
                     'Success' => true,
