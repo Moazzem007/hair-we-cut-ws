@@ -158,7 +158,7 @@ class BarberAuthApiController extends Controller
             );
 
             if ($result){
-                // Mail::to($request->email)->send(new BarberSignUp($dataMail));
+                Mail::to($request->email)->send(new BarberSignUp($dataMail));
 
                  return response()->json([
                     'Success' => true,
