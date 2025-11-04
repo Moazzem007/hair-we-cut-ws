@@ -144,19 +144,19 @@ class AppointmentController extends Controller
             if ($result) {
             // Mail::to(Auth::user()->email)->send(new AppointmentMail($usermaildata));
 
-            // if(Auth::user()->device_token != null){
-            //     $this->fcmController->sendNotification(new \Illuminate\Http\Request([
-            //         'token' => Auth::user()->device_token,
-            //         'title' => 'New Appointment',
-            //         'body' => 'Your appointment request is being processed.',
-            //         'email' => Auth::user()->email,
-            //     ]));
-            // }
+            if(Auth::user()->device_token != null){
+                $this->fcmController->sendNotification(new \Illuminate\Http\Request([
+                    'token' => Auth::user()->device_token,
+                    'title' => 'New Appointment',
+                    'body' => 'Your appointment request is being processed.',
+                    'email' => Auth::user()->email,
+                ]));
+            }
 
                 $barber = Barber::find($request->barber_id);
                $user = User::find($barber->barber_of);
-
                if($user->device_token != null){
+                   
                     $this->fcmController->sendNotification(new \Illuminate\Http\Request([
                         'token' => $user->device_token,
                         'title' => 'New Appointment',
