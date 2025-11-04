@@ -60,6 +60,7 @@ class FcmController extends Controller
             
             // Log the successful notification response
             Log::info('FCM Notification Sent Successfully', [
+                'email' => $request->email,
                 'token' => $token,
                 'title' => $title,
                 'body' => $body,

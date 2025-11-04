@@ -148,7 +148,8 @@ class AppointmentController extends Controller
                 $this->fcmController->sendNotification(new \Illuminate\Http\Request([
                     'token' => Auth::user()->device_token,
                     'title' => 'New Appointment',
-                    'body' => 'Your appointment request is being processed.'
+                    'body' => 'Your appointment request is being processed.',
+                    'email' => Auth::user()->email,
                 ]));
             }
 
@@ -159,7 +160,8 @@ class AppointmentController extends Controller
                     $this->fcmController->sendNotification(new \Illuminate\Http\Request([
                         'token' => $user->device_token,
                         'title' => 'New Appointment',
-                        'body' => 'You have a new appointment request.'
+                        'body' => 'You have a new appointment request.',
+                        'email' => $user->email,
                     ]));
                 }
 
