@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\BarberSignUp;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class BarberAuthApiController extends Controller
@@ -59,7 +60,8 @@ class BarberAuthApiController extends Controller
 
             }
 
-            $barber = Auth::user();
+            $barber = Barber::where('id', Auth::user()->id)->first();
+            
 
 
             if($barber->device_token != $request->token){
