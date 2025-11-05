@@ -37,9 +37,9 @@ class AppointmentController extends Controller
     public function index()
     {
         //
-        $appointments = Appointment::with('customer','service','slot','barber','rating','log')->orderBy('created_at','desc')->get();
+        $appointments = Appointment::with('customer', 'service', 'slot', 'barber', 'rating', 'log')->orderBy('created_at', 'desc')->get();
         // return $appointments;
-        return view('admin.appointment.index',compact('appointments'));
+        return view('admin.appointment.index', compact('appointments'));
     }
 
 
@@ -48,9 +48,9 @@ class AppointmentController extends Controller
         $userid = Auth::user()->id;
 
         // Total Appointment
-        $appointments = Appointment::where('salon_id',$userid)->with('customer','barber','service','slot','reason','rating')->orderBy('created_at','desc')->get();
+        $appointments = Appointment::where('salon_id', $userid)->with('customer', 'barber', 'service', 'slot', 'reason', 'rating')->orderBy('created_at', 'desc')->get();
         // return $appointments;
-        return view('admin.barbar.appointments',compact('appointments'));
+        return view('admin.barbar.appointments', compact('appointments'));
     }
 
 
@@ -85,24 +85,24 @@ class AppointmentController extends Controller
     {
         try {
 
-        $role = [
-            'time'      => 'required',
-            'barber_id' => 'required',
-            'type'      => 'required',
-            'service'   => 'required',
-            'address'   => $request->appType == 'Mobile_shop' ? 'required' :'',
-            'slote'     => 'required',
-            'lat'       => $request->appType == 'Mobile_shop' ? 'required' :'',
-            'lng'       => $request->appType == 'Mobile_shop' ? 'required' :'',
-            'appType'   => 'required',
-            'town'    =>$request->appType == 'Mobile_shop' ? 'required' :'',
-            'postcode'=>$request->appType == 'Mobile_shop' ? 'required' :'',
-            'address2'=>$request->appType == 'Mobile_shop' ? 'required' :'',
-        ];
+            $role = [
+                'time'      => 'required',
+                'barber_id' => 'required',
+                'type'      => 'required',
+                'service'   => 'required',
+                'address'   => $request->appType == 'Mobile_shop' ? 'required' : '',
+                'slote'     => 'required',
+                'lat'       => $request->appType == 'Mobile_shop' ? 'required' : '',
+                'lng'       => $request->appType == 'Mobile_shop' ? 'required' : '',
+                'appType'   => 'required',
+                'town'    => $request->appType == 'Mobile_shop' ? 'required' : '',
+                'postcode' => $request->appType == 'Mobile_shop' ? 'required' : '',
+                'address2' => $request->appType == 'Mobile_shop' ? 'required' : '',
+            ];
 
-            $validateData = Validator::make($request->all(),$role);
+            $validateData = Validator::make($request->all(), $role);
 
-            if($validateData->fails()){
+            if ($validateData->fails()) {
 
                 return response()->json([
                     'message' => 'Invalid data send',
@@ -142,21 +142,21 @@ class AppointmentController extends Controller
             );
 
             if ($result) {
-            // Mail::to(Auth::user()->email)->send(new AppointmentMail($usermaildata));
+                // Mail::to(Auth::user()->email)->send(new AppointmentMail($usermaildata));
 
-            if(Auth::user()->device_token != null){
-                $this->fcmController->sendNotification(new \Illuminate\Http\Request([
-                    'token' => Auth::user()->device_token,
-                    'title' => 'New Appointment',
-                    'body' => 'Your appointment request is being processed.',
-                    'email' => Auth::user()->email,
-                ]));
-            }
+                if (Auth::user()->device_token != null) {
+                    $this->fcmController->sendNotification(new \Illuminate\Http\Request([
+                        'token' => Auth::user()->device_token,
+                        'title' => 'New Appointment',
+                        'body' => 'Your appointment has been booked.',
+                        'email' => Auth::user()->email,
+                    ]));
+                }
 
                 $barber = Barber::find($request->barber_id);
-               $user = User::find($barber->barber_of);
-               if($user->device_token != null){
-                   
+                $user = User::find($barber->barber_of);
+                if ($user->device_token != null) {
+
                     $this->fcmController->sendNotification(new \Illuminate\Http\Request([
                         'token' => $user->device_token,
                         'title' => 'New Appointment',
@@ -177,7 +177,6 @@ class AppointmentController extends Controller
                     'app_id'  => $result->id,
                 ]);
             }
-
         } catch (\Exception $e) {
 
             return response()->json([
@@ -188,166 +187,6 @@ class AppointmentController extends Controller
     }
 
 
-
-    // Appointment Notifications
-
-    public function notification($token)
-    {
-
-        try {
-
-            $SERVER_API_KEY = 'AAAA3HaTkiY:APA91bH7w0D8dBQDGLith9YEOMwbW6y-uUPabDzaDp8uos84uIDIAryeWUU9o3d7KdczvjlC-8GrqCZcIpT1Qj_j1mjP-DmGXFSkbfthAp2ZDKBG6QtQ2B3zVLvDBKwnH6ANfnwau3fL';
-            // $token = ;
-            $data = [
-                "registration_ids" =>   array (
-                    $token
-                ),
-                "notification" => [
-                    "title" => "Appointment Notification",
-                    "body" => 'Your appointment has been booked with us',
-                ]
-            ];
-            $dataString = json_encode($data);
-
-            $headers = [
-                'Authorization: key='.$SERVER_API_KEY,
-                'Content-Type: application/json',
-            ];
-
-            $ch = curl_init();
-
-            curl_setopt($ch, CURLOPT_URL, 'https://fcm.googleapis.com/fcm/send');
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $dataString);
-
-            $response = curl_exec($ch);
-
-            return response()->json([
-                'success' => true,
-                'message' => $response,
-            ]);
-
-
-
-
-        } catch (\Exception $e) {
-
-            return response()->json([
-                'success' => false,
-                'Error' => $e->getMessage(),
-            ]);
-        }
-    }
-
-    public function barbernotification($token)
-    {
-
-        try {
-
-            $SERVER_API_KEY = 'AAAA3HaTkiY:APA91bH7w0D8dBQDGLith9YEOMwbW6y-uUPabDzaDp8uos84uIDIAryeWUU9o3d7KdczvjlC-8GrqCZcIpT1Qj_j1mjP-DmGXFSkbfthAp2ZDKBG6QtQ2B3zVLvDBKwnH6ANfnwau3fL';
-            // $token = ;
-            $data = [
-                "registration_ids" =>   array (
-                    $token
-                ),
-                "notification" => [
-                    "title" => "Appointment Notification",
-                    "body" => 'You have New Appointment',
-                ]
-            ];
-            $dataString = json_encode($data);
-
-            $headers = [
-                'Authorization: key='.$SERVER_API_KEY,
-                'Content-Type: application/json',
-            ];
-
-            $ch = curl_init();
-
-            curl_setopt($ch, CURLOPT_URL, 'https://fcm.googleapis.com/fcm/send');
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $dataString);
-
-            $response = curl_exec($ch);
-
-            return response()->json([
-                'success' => true,
-                'message' => $response,
-            ]);
-
-
-
-
-        } catch (\Exception $e) {
-
-            return response()->json([
-                'success' => false,
-                'Error' => $e->getMessage(),
-            ]);
-        }
-    }
-
-
-
-    public function sendNotification($token, $title, $body)
-    {
-
-        try {
-
-            $SERVER_API_KEY = 'AAAA3HaTkiY:APA91bH7w0D8dBQDGLith9YEOMwbW6y-uUPabDzaDp8uos84uIDIAryeWUU9o3d7KdczvjlC-8GrqCZcIpT1Qj_j1mjP-DmGXFSkbfthAp2ZDKBG6QtQ2B3zVLvDBKwnH6ANfnwau3fL';
-            // $token = ;
-            $data = [
-                "registration_ids" =>   array (
-                    $token
-                ),
-                "notification" => [
-                    "title" => $title,
-                    "body" => $body,
-                ]
-            ];
-            $dataString = json_encode($data);
-
-            $headers = [
-                'Authorization: key='.$SERVER_API_KEY,
-                'Content-Type: application/json',
-            ];
-
-            $ch = curl_init();
-
-            curl_setopt($ch, CURLOPT_URL, 'https://fcm.googleapis.com/fcm/send');
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $dataString);
-
-            $response = curl_exec($ch);
-
-            return response()->json([
-                'success' => true,
-                'message' => $response,
-            ]);
-
-
-
-
-        } catch (\Exception $e) {
-
-            return response()->json([
-                'success' => false,
-                'Error' => $e->getMessage(),
-            ]);
-        }
-    }
-
-
-
     public function appointmentajax(Request $request)
     {
         $role = [
@@ -356,9 +195,9 @@ class AppointmentController extends Controller
 
         ];
 
-        $validateData = Validator::make($request->all(),$role);
+        $validateData = Validator::make($request->all(), $role);
 
-        if($validateData->fails()){
+        if ($validateData->fails()) {
 
             return response()->json([
                 'message' => 'Invalid data send',
@@ -377,13 +216,12 @@ class AppointmentController extends Controller
             return response()->json([
                 'Message' => 'Slot Is Booked',
             ]);
-        }else{
+        } else {
             return response()->json([
 
                 'Message' => 'Slot Is Avaliable',
             ]);
         }
-
     }
 
     /**
@@ -400,14 +238,12 @@ class AppointmentController extends Controller
             $app         = Appointment::find($id);
 
             return response()->json($app);
-
         } catch (\Exception $e) {
 
             return response()->json([
                 'success' => false,
                 'Error' => $e->getMessage()
             ]);
-
         }
     }
 
@@ -417,62 +253,155 @@ class AppointmentController extends Controller
         $authid = Auth::user()->id;
 
         try {
-            $app         = Appointment::where('customer_id',$authid)->with('slot','customer','barber')->orderby('id','desc')->get();
-            $products    =ProductWallet::where('customer_id',$authid)->with('code')->orderby('id','desc')->get();
-			$data = array_merge($app->toArray(), $products->toArray());
-            usort($data, function($a, $b) {
-             return $b['id'] - $a['id'];
-              });
+            $app         = Appointment::where('customer_id', $authid)->with('slot', 'customer', 'barber')->orderby('id', 'desc')->get();
+            $products    = ProductWallet::where('customer_id', $authid)->with('code')->orderby('id', 'desc')->get();
+            $data = array_merge($app->toArray(), $products->toArray());
+            usort($data, function ($a, $b) {
+                return $b['id'] - $a['id'];
+            });
             return response()->json($data);
-
         } catch (\Exception $e) {
 
             return response()->json([
                 'success' => false,
                 'Error' => $e->getMessage()
             ]);
-
         }
     }
 
 
-	    public function updateappointment(Request $request){
+    public function updateappointment(Request $request, $id)
+    {
+        if (!$id || $id == null || $id == '') {
+            return response()->json([
+                'success' => false,
+                'Error' => 'Invalid appointment ID'
+            ]);
+        }
+
         try {
-        $store = Appointment::find($request->id);
-        $store->view = $request->view;
-        $store->update();
-        return response()->json(['status' =>'appointment updated']);
 
-    } catch (\Exception $e) {
+            $role = [
+                'time'      => 'required',
+                'barber_id' => 'required',
+                'type'      => 'required',
+                'service'   => 'required',
+                'address'   => $request->appType == 'Mobile_shop' ? 'required' : '',
+                'slote'     => 'required',
+                'lat'       => $request->appType == 'Mobile_shop' ? 'required' : '',
+                'lng'       => $request->appType == 'Mobile_shop' ? 'required' : '',
+                'appType'   => 'required',
+                'town'    => $request->appType == 'Mobile_shop' ? 'required' : '',
+                'postcode' => $request->appType == 'Mobile_shop' ? 'required' : '',
+                'address2' => $request->appType == 'Mobile_shop' ? 'required' : '',
+            ];
 
-        return response()->json([
-            'success' => false,
-            'Error' => $e->getMessage()
-        ]);
+            $validateData = Validator::make($request->all(), $role);
 
+            if ($validateData->fails()) {
+
+                return response()->json([
+                    'message' => 'Invalid data send',
+                    'Error' => $validateData->errors(),
+                ], 400);
+            }
+            $barber = Barber::find($request->barber_id);
+
+            $data = array(
+                'date'         => $request->time,
+                'barber_id'    => $request->barber_id,
+                'service_type' => $request->type,
+                'address'      => $request->address,
+                'address2' => $request->address2 ?? '',
+                'town'     => $request->town ?? '',
+                'postcode' => $request->postcode ?? '',
+                'service_id'   => $request->service,
+                'slote_id'     => $request->slote,
+                'lat'          => $request->lat,
+                'lng'          => $request->lng,
+                'appType'      => $request->appType,
+                'customer_id'  => Auth::user()->id,
+                'salon_id'     => $barber->barber_of
+            );
+
+            $result = Appointment::where('id', $id)->update($data);
+
+            $usermaildata = array(
+                'name'    => Auth::user()->name,
+                'date'    => $request->time,
+                'contact' => Auth::user()->contact,
+                'time'    => BarberTimeSlot::find($request->slote),
+                'email'   => Auth::user()->email,
+                'barber'     => $barber->name,
+                'salon'     => $barber->barber_of,
+                'appType' => $request->appType,
+            );
+
+            if ($result) {
+                // Mail::to(Auth::user()->email)->send(new AppointmentMail($usermaildata));
+
+                if (Auth::user()->device_token != null) {
+                    $this->fcmController->sendNotification(new \Illuminate\Http\Request([
+                        'token' => Auth::user()->device_token,
+                        'title' => 'Appointment Updated',
+                        'body' => 'Your appointment has been updated.',
+                        'email' => Auth::user()->email,
+                    ]));
+                }
+
+                $barber = Barber::find($request->barber_id);
+                $user = User::find($barber->barber_of);
+                if ($user->device_token != null) {
+
+                    $this->fcmController->sendNotification(new \Illuminate\Http\Request([
+                        'token' => $user->device_token,
+                        'title' => 'Updated Appointment',
+                        'body' => 'You have an updated appointment.',
+                        'email' => $user->email,
+                    ]));
+                }
+
+                $log = [
+                    'appointment_id' => (string)$id,
+                    'status'         => "ADD",
+                    'payment'        => 0,
+                ];
+                AppointmentLog::create($log);
+
+                return response()->json([
+                    'success' => true,
+                    'app_id'  => (string)$id,
+                ]);
+            }
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'success' => false,
+                'Erorr'   => $e->getMessage(),
+            ]);
+        }
     }
+
+
+    public function countnotification()
+    {
+        $authid = Auth::user()->id;
+
+        try {
+            $app         = Appointment::where('customer_id', $authid)->where('view', 'unview')->get();
+            $products    = ProductWallet::where('customer_id', $authid)->where('view', 'unview')->get();
+            $count_app = $app->count();
+            $count_product = $products->count();
+            $count_notification = $count_app + $count_product;
+            return response()->json($count_notification);
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'success' => false,
+                'Error' => $e->getMessage()
+            ]);
+        }
     }
-	public function countnotification()
-{
-    $authid = Auth::user()->id;
-
-    try {
-            $app         = Appointment::where('customer_id',$authid)->where('view','unview')->get();
-            $products    =ProductWallet::where('customer_id',$authid)->where('view','unview')->get();
-		$count_app = $app->count();
-		$count_product = $products->count();
-		$count_notification = $count_app+$count_product;
-        return response()->json($count_notification);
-
-    } catch (\Exception $e) {
-
-        return response()->json([
-            'success' => false,
-            'Error' => $e->getMessage()
-        ]);
-
-    }
-}
 
     /**
      * Show the form for editing the specified resource.
@@ -525,7 +454,7 @@ class AppointmentController extends Controller
 
 
 
-            if($run){
+            if ($run) {
 
                 $app                 = Appointment::find($request->id);
                 $app->status         = 'Canceled';
@@ -544,17 +473,13 @@ class AppointmentController extends Controller
                     'Message' => "Appointment Cancled"
                 ]);
             }
-
-
         } catch (\Exception $e) {
 
             return response()->json([
                 'success' => false,
                 'Error' => $e->getMessage()
             ]);
-
         }
-
     }
 
     public function cancleApi($id)
@@ -570,22 +495,19 @@ class AppointmentController extends Controller
                 'success' => true,
                 'Message' => "Appointment Cancled"
             ]);
-
         } catch (\Exception $e) {
 
             return response()->json([
                 'success' => false,
                 'Error' => $e->getMessage()
             ]);
-
         }
-
     }
 
     public function refundPayment($id)
     {
 
-        $app  = Appointment::with('wallet','customer')->find($id);
+        $app  = Appointment::with('wallet', 'customer')->find($id);
         $user = Auth::user();
         // Set your secret key. Remember to switch to your live secret key in production.
         // See your keys here: https://dashboard.stripe.com/apikeys
@@ -596,16 +518,16 @@ class AppointmentController extends Controller
         // $token  = $app->stripe_token;
         $token  = $app->stripe_token;
         $logStatus = '';
-        if($app->cancel_payment){
+        if ($app->cancel_payment) {
             $amount    = ($app->wallet->debit + $app->wallet->com_amount) - 6;
             $logStatus = "PARTIAL-REFUND";
-        }else{
+        } else {
             $logStatus = "TOTAL-REFUND";
             $amount    = ($app->wallet->debit + $app->wallet->com_amount);
         }
 
 
-       $refund =  \Stripe\Refund::create([
+        $refund =  \Stripe\Refund::create([
             'charge'   => $token,
             'amount'   => $amount * 100,
         ]);
@@ -613,11 +535,11 @@ class AppointmentController extends Controller
 
 
 
-        Wallet::where('appointment_id',$id)->delete();
+        Wallet::where('appointment_id', $id)->delete();
         $mixid  = Wallet::max('inv');
         $inv    = $mixid + 1;
 
-        if($app->cancel_payment){
+        if ($app->cancel_payment) {
             $paymentData = array(
                 'user_id'        => $app->customer_id,
                 'barber_id'      => $app->barber_id,
@@ -628,8 +550,7 @@ class AppointmentController extends Controller
                 'com_amount'     => 0,
                 'description'    => 'Cancellation Fee',
             );
-
-        }else{
+        } else {
             $paymentData = array(
                 'user_id'        => $app->customer_id,
                 'barber_id'      => $app->barber_id,
@@ -645,11 +566,11 @@ class AppointmentController extends Controller
 
 
         $run = Wallet::create($paymentData);
-        if($run){
-           $app->refund = true;
-           $up          = $app->update();
+        if ($run) {
+            $app->refund = true;
+            $up          = $app->update();
 
-            if($up){
+            if ($up) {
                 $log = [
                     'appointment_id' => $app->id,
                     'status'         => $logStatus,
@@ -661,7 +582,5 @@ class AppointmentController extends Controller
                 return redirect()->back();
             }
         }
-
-
     }
 }

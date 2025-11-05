@@ -293,7 +293,7 @@ Route::group(['prefix' => 'customer'], function () {
         Route::get('cancleApi/{id}', [AppointmentController::class, 'cancleApi']);
         Route::get('showappdetals/{id}', [AppointmentController::class, 'show']);
         Route::get('notification_appointment', [AppointmentController::class, 'notificationappointment'])->name('notification_appointment');
-	  Route::post('update_appointment', [AppointmentController::class, 'updateappointment'])->name('update_appointment');
+	  Route::post('update-appointment/{id}', [AppointmentController::class, 'updateappointment'])->name('update-appointment');
         Route::get('count_notification', [AppointmentController::class, 'countnotification'])->name('count_notification');
 
 
