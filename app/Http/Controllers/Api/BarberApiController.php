@@ -218,7 +218,7 @@ class BarberApiController extends Controller
             }
 
             $data = array(
-                'barber_id' => Auth::user()->user_id,
+                'barber_id' => Auth::user()->id,
                 'slot_no'   => $request->slot_no,
                 'from_time' => $request->from_time,
                 'to_time'   => $request->to_time,
