@@ -334,7 +334,7 @@ Route::group(['prefix' => 'customer'], function () {
         // get slote of the barber to show customer
         Route::get('slots/{id}', [BarberApiController::class, 'slots']);
 
-        Route::get('check-available-slots/{barberId}', [BarberApiController::class, 'checkavailableslots']);
+        Route::get('check-available-slots/{barberId}', [BarberApiController::class, 'checkavailableslotsForCustomer']);
 
         //  Package APis
         Route::post('package', [PackageController::class, 'store']);

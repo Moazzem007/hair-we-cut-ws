@@ -195,6 +195,25 @@ class BarberApiController extends Controller
         }
     }
 
+    public function checkavailableslotsForCustomer($barberId)
+    {
+        try {
+            $slots = BarberTimeSlot::where('barber_id',$barberId)->where('status', 'Avalible')->get();
+
+            return response()->json([
+                'success' => true,
+                'data'    => $slots,
+                'status'  => 200,
+            ]);
+
+        } catch (\Exception $e) {
+            return  response()->json([
+                'success' => false,
+                'Error'   => $e->getMessage(),
+            ]);
+        }
+    }
+
     // Add Slot
     public function addslot(Request $request)
     {

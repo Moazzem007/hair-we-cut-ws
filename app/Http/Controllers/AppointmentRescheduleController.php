@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\AppointmentReschedule;
 use App\Models\Barber;
 use App\Models\BarberTimeSlot;
+use App\Models\Customer;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -84,7 +85,7 @@ class AppointmentRescheduleController extends Controller
             ]);
 
             // notify customer: reuse your fcmController (as in store method)
-            $customer = User::find($appointment->customer_id);
+            $customer = Customer::find($appointment->customer_id);
             if ($customer && $customer->device_token != null) {
                 $this->fcmController->sendNotification(new \Illuminate\Http\Request([
                     'token' => $customer->device_token,

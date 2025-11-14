@@ -168,6 +168,7 @@ class AppointmentController extends Controller
 
                 $barber = Barber::find($request->barber_id);
                 $user = User::find($barber->barber_of);
+                
                 if ($user->device_token != null) {
 
                     $this->fcmController->sendNotification(new \Illuminate\Http\Request([
@@ -175,6 +176,16 @@ class AppointmentController extends Controller
                         'title' => 'New Appointment',
                         'body' => 'You have a new appointment request.',
                         'email' => $user->email,
+                    ]));
+                }
+
+                if ($barber->device_token != null) {
+
+                    $this->fcmController->sendNotification(new \Illuminate\Http\Request([
+                        'token' => $barber->device_token,
+                        'title' => 'New Appointment',
+                        'body' => 'You have a new appointment request.',
+                        'email' => $barber->email,
                     ]));
                 }
 
