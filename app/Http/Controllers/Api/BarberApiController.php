@@ -175,8 +175,9 @@ class BarberApiController extends Controller
     }
 
     // check available slots
-    public function checkavailableslots($barberId)
+    public function checkavailableslots()
     {
+        $barberId = Auth::user()->id;
         try {
             $slots = BarberTimeSlot::where('barber_id',$barberId)->where('status', 'Avalible')->get();
 

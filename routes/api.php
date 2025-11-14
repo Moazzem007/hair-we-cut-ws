@@ -121,6 +121,8 @@ Route::group(['prefix' => 'barber'], function () {
         // Barber Dashboard
         Route::get('dashboard', [BarberApiController::class, 'dashboard']);
 
+        Route::get('check-available-slots', [BarberApiController::class, 'checkavailableslots']);
+
         // Barber Adding Documents
         Route::post('adddocumetns', [BarberApiController::class, 'adddocumetns']);
 
