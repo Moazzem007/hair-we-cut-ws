@@ -128,7 +128,20 @@ class AppointmentController extends Controller
                 'salon_id'     => $barber->barber_of
             );
 
+            $slot = BarberTimeSlot::where('barber_id',$request->barber_id)->where('id', $request->slote)->where('status', 'Avalible')->first();
+           
+            if(!$slot){
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Slot Not Available',
+                ]);
+            }
+
             $result = Appointment::create($data);
+
+            $slot->status = 'Unavailable';
+            
+            $slot->update();
 
             $usermaildata = array(
                 'name'    => Auth::user()->name,

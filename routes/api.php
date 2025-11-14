@@ -24,7 +24,7 @@ use App\Http\Controllers\Api\Qrcodecontroller;
 
 // PARSIONAL INFO FOR JOB
 use App\Http\Controllers\AppointmentController;
-
+use App\Http\Controllers\AppointmentRescheduleController;
 // CUSTOMER CONTROLLERS
 use App\Http\Controllers\BarberController;
 use App\Http\Controllers\CategoryController;
@@ -136,6 +136,8 @@ Route::group(['prefix' => 'barber'], function () {
         // Barber Add Slot
         Route::get('deleteslot/{id}', [BarberApiController::class, 'deleteslot']);
 
+        Route::post('/appointment-reschedule-request/{appointmentId}', [AppointmentRescheduleController::class, 'requestReschedule']);
+        Route::get('/appointment-reschedules', [AppointmentRescheduleController::class, 'listBarberReschedules']);
         // Barber Apointments
         Route::get('barberAppointment', [BarberApiController::class, 'barberAppointment']);
         Route::post('update_app', [BarberApiController::class, 'update_app'])->name('update_app');
@@ -288,6 +290,11 @@ Route::group(['prefix' => 'customer'], function () {
 
         // Appointments
         Route::post('appointment', [AppointmentController::class, 'store']);
+
+        Route::get('/reschedule-requests', [AppointmentRescheduleController::class, 'listCustomerReschedules']);
+
+        Route::post('/appointment-reschedule-response/{rescheduleId}', [AppointmentRescheduleController::class, 'respondReschedule']);
+        
         Route::post('appointmentajax', [AppointmentController::class, 'appointmentajax']);
         Route::post('cancleapp', [AppointmentController::class, 'cancleapp']);
         Route::get('cancleApi/{id}', [AppointmentController::class, 'cancleApi']);
@@ -324,6 +331,8 @@ Route::group(['prefix' => 'customer'], function () {
 
         // get slote of the barber to show customer
         Route::get('slots/{id}', [BarberApiController::class, 'slots']);
+
+        Route::get('check-available-slots/{barberId}', [BarberApiController::class, 'checkavailableslots']);
 
         //  Package APis
         Route::post('package', [PackageController::class, 'store']);
