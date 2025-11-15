@@ -61,18 +61,18 @@ class AppointmentRescheduleController extends Controller
             // }
 
             // Optionally check slot availability
-            if ($request->proposed_slote_id) {
-                $newSlot = BarberTimeSlot::where('barber_id', Auth::user()->id)->where('status', 'Avalible')->first();
-                if (!$newSlot) {
-                    return response()->json(['success' => false, 'message' => 'Proposed slot not found'], 404);
-                }
-                if ($newSlot->status !== 'Avalible') {
-                    return response()->json(['success' => false, 'message' => 'Proposed slot not available'], 400);
-                }
-            } else if (!$request->proposed_date) {
-                // At least one of proposed_slote_id or proposed_date should be provided
-                return response()->json(['success' => false, 'message' => 'Provide proposed_slote_id or proposed_date'], 400);
-            }
+            // if ($request->proposed_slote_id) {
+            //     $newSlot = BarberTimeSlot::where('barber_id', Auth::user()->id)->where('status', 'Avalible')->first();
+            //     if (!$newSlot) {
+            //         return response()->json(['success' => false, 'message' => 'Proposed slot not found'], 404);
+            //     }
+            //     if ($newSlot->status !== 'Avalible') {
+            //         return response()->json(['success' => false, 'message' => 'Proposed slot not available'], 400);
+            //     }
+            // } else if (!$request->proposed_date) {
+            //     // At least one of proposed_slote_id or proposed_date should be provided
+            //     return response()->json(['success' => false, 'message' => 'Provide proposed_slote_id or proposed_date'], 400);
+            // }
 
             $res = AppointmentReschedule::create([
                 'appointment_id'   => $appointment->id,
@@ -128,9 +128,9 @@ class AppointmentRescheduleController extends Controller
             }
 
             // ensure current user is the appointment's customer
-            if (Auth::user()->id !== $appointment->customer_id) {
-                return response()->json(['success'=>false, 'message'=>'Forbidden'], 403);
-            }
+            // if (Auth::user()->id !== $appointment->customer_id) {
+            //     return response()->json(['success'=>false, 'message'=>'Forbidden'], 403);
+            // }
 
             if ($request->action === 'reject') {
                 $res->status = 'Rejected';
@@ -159,24 +159,24 @@ class AppointmentRescheduleController extends Controller
             }
 
             // APPROVE flow
-            if ($res->proposed_slote_id) {
-                $newSlot = BarberTimeSlot::find($res->proposed_slote_id);
-                if (!$newSlot || $newSlot->status !== 'Avalible') {
-                    return response()->json(['success'=>false, 'message'=>'Proposed slot not available anymore'], 400);
-                }
-            }
+            // if ($res->proposed_slote_id) {
+            //     $newSlot = BarberTimeSlot::find($res->proposed_slote_id);
+            //     if (!$newSlot || $newSlot->status !== 'Avalible') {
+            //         return response()->json(['success'=>false, 'message'=>'Proposed slot not available anymore'], 400);
+            //     }
+            // }
 
-            // free old slot (if you use slots)
-            $oldSlot = BarberTimeSlot::find($appointment->slote_id);
-            if ($oldSlot) {
-                $oldSlot->status = 'Available';
-                $oldSlot->save();
-            }
+            // // free old slot (if you use slots)
+            // $oldSlot = BarberTimeSlot::find($appointment->slote_id);
+            // if ($oldSlot) {
+            //     $oldSlot->status = 'Available';
+            //     $oldSlot->save();
+            // }
 
             // assign new slot if provided
             if ($res->proposed_slote_id) {
-                $newSlot->status = 'Unavailable';
-                $newSlot->save();
+                // $newSlot->status = 'Unavailable';
+                // $newSlot->save();
                 $appointment->slote_id = $res->proposed_slote_id;
             }
 
