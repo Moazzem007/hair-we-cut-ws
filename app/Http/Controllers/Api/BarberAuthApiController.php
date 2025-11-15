@@ -44,23 +44,36 @@ class BarberAuthApiController extends Controller
     {
         try {
 
-            $role = [
+            // $role = [
                     
-                'token'     => 'required',
-            ];
+            //     'token'     => 'required',
+            // ];
 
-            $validateData = Validator::make($request->all(),$role);
+            // $validateData = Validator::make($request->all(),$role);
 
-            if($validateData->fails()){
+            // if($validateData->fails()){
 
-                return response()->json([
-                    'message' => 'Invalid data send',
-                    'Error' => $validateData->errors(),
-                ], 400);
+            //     return response()->json([
+            //         'message' => 'Invalid data send',
+            //         'Error' => $validateData->errors(),
+            //     ], 400);
 
-            }
+            // }
 
             $barber = Barber::where('id', Auth::user()->id)->first();
+            $user = User::find($barber->user_id);
+
+            if($request->token == null){
+                $barber->device_token = null;
+                $barber->update();
+                $user->device_token = null;
+                $user->update();
+                $result = 'Token Removed';
+                return response()->json([
+                    'success' => true,
+                    'message'   => $result,
+                ]);
+            }
             
 
 
@@ -69,7 +82,6 @@ class BarberAuthApiController extends Controller
                 $barber->device_token = $request->token;
                 $barber->update();
 
-                $user = User::find($barber->user_id);
                 $user->device_token = $request->token;
                 $user->update();
 

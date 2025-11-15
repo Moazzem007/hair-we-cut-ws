@@ -43,23 +43,33 @@ class CustomerController extends Controller
     {
         try {
 
-            $role = [
+            // $role = [
                     
-                'token'     => 'required',
-            ];
+            //     'token'     => 'required',
+            // ];
 
-            $validateData = Validator::make($request->all(),$role);
+            // $validateData = Validator::make($request->all(),$role);
 
-            if($validateData->fails()){
+            // if($validateData->fails()){
 
-                return response()->json([
-                    'message' => 'Invalid data send',
-                    'Error' => $validateData->errors(),
-                ], 400);
+            //     return response()->json([
+            //         'message' => 'Invalid data send',
+            //         'Error' => $validateData->errors(),
+            //     ], 400);
 
-            }
+            // }
 
             $user = Auth::user();
+
+            if($request->token == null){
+                $user->device_token = null;
+                $user->update();
+                $result = 'Token Removed';
+                return response()->json([
+                    'success' => true,
+                    'message'   => $result,
+                ]);
+            }
 
             if($user->device_token != $request->token){
                 $user->device_token = $request->token;
