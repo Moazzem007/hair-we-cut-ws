@@ -167,7 +167,6 @@ class AppointmentController extends Controller
                 }
 
                 $barber = Barber::find($request->barber_id);
-                return response()->json($barber);
                 $user = User::find($barber->barber_of);
                 
                 if ($user->device_token != null) {
