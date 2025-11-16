@@ -14,6 +14,7 @@ use App\Models\ProductWallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\AppointmentMail;
@@ -136,6 +137,7 @@ class AppointmentController extends Controller
             //         'message' => 'Slot Not Available',
             //     ]);
             // }
+            // return response()->json(Auth::user()->email);
 
             $result = Appointment::create($data);
 
@@ -155,7 +157,12 @@ class AppointmentController extends Controller
             );
 
             if ($result) {
-                Mail::to(Auth::user()->email)->send(new AppointmentMail($usermaildata));
+                try {
+                    Mail::to(Auth::user()->email)->send(new AppointmentMail($usermaildata));
+                    Log::info('Appointment mail sent successfully to user: ' . Auth::user()->email);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send appointment mail to user: ' . Auth::user()->email . ' Error: ' . $e->getMessage());
+                }
 
                 if (Auth::user()->device_token != null) {
                     $this->fcmController->sendNotification(new \Illuminate\Http\Request([
