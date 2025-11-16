@@ -17,7 +17,7 @@ use App\Models\AppointmentLog;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use App\Mail\UserSignUp;
-
+use Illuminate\Support\Facades\Log;
 use Stripe; 
 
 
@@ -152,8 +152,12 @@ class CustomerController extends Controller
             );
 
             if ($result){
-                Mail::to($request->email)->send(new UserSignUp($dataMail));
-
+                try {
+                    Mail::to($request->email)->send(new UserSignUp($dataMail));
+                    Log::info('User sign-up mail sent successfully to user: ' . $request->email);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send user sign-up mail to user: ' . $request->email . ' Error: ' . $e->getMessage());
+                }
                 return response()->json([
                     'success' => true,
                     'Message' => "Customer Register",
