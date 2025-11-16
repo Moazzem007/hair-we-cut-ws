@@ -155,7 +155,7 @@ class AppointmentController extends Controller
             );
 
             if ($result) {
-                // Mail::to(Auth::user()->email)->send(new AppointmentMail($usermaildata));
+                Mail::to(Auth::user()->email)->send(new AppointmentMail($usermaildata));
 
                 if (Auth::user()->device_token != null) {
                     $this->fcmController->sendNotification(new \Illuminate\Http\Request([
