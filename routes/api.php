@@ -58,6 +58,11 @@ use Illuminate\Support\Facades\Route;
 // onboarding images
 use App\Http\Controllers\onboardingcontroller;
 
+use App\Http\Controllers\Api\CheckoutController;
+use App\Http\Controllers\Api\TransactionController;
+use App\Http\Controllers\Api\RefundController;
+use App\Http\Controllers\Api\OrderStatusController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -146,7 +151,7 @@ Route::group(['prefix' => 'barber'], function () {
         Route::post('updatepro_wallet', [BarberApiController::class, 'update_wallet'])->name('updatepro_wallet');
         Route::get('barber_notification', [BarberApiController::class, 'barber_notification'])->name('barber_notification');
         Route::get('barber_count_notification', [BarberApiController::class, 'barber_countnotification'])->name('barber_count_notification');
-		
+
         // Update Profile
         Route::post('updateprofile', [BarberApiController::class, 'updateprofile']);
 
@@ -296,7 +301,7 @@ Route::group(['prefix' => 'customer'], function () {
         Route::get('/reschedule-requests', [AppointmentRescheduleController::class, 'listCustomerReschedules']);
 
         Route::post('/appointment-reschedule-response/{rescheduleId}', [AppointmentRescheduleController::class, 'respondReschedule']);
-        
+
         Route::post('appointmentajax', [AppointmentController::class, 'appointmentajax']);
         Route::post('cancleapp', [AppointmentController::class, 'cancleapp']);
         Route::get('cancleApi/{id}', [AppointmentController::class, 'cancleApi']);
@@ -360,3 +365,9 @@ Route::group(['prefix' => 'customer'], function () {
 
 
 Route::post('sendNotification', [FcmController::class, 'sendNotification']);
+
+
+Route::post('/payment-orders', [CheckoutController::class,'create']);           // create order + checkout page url
+Route::get('/payment-orders/{order}/status', [OrderStatusController::class,'show']);
+Route::post('/transactions', [TransactionController::class,'store']);  // receives cardIdentifier from checkout page
+Route::post('/payment-orders/{order}/refund', [RefundController::class,'refund']);
