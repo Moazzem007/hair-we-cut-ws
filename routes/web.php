@@ -29,6 +29,7 @@ use App\Http\Controllers\marketplace;
 use App\Http\Controllers\jobapplycontroller;
 use App\Http\Controllers\outsidemarketplace;
 use App\Http\Controllers\onboardingcontroller;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Web\CheckoutPageController;
 use App\Http\Controllers\Web\PaymentReturnController;
 
@@ -317,5 +318,9 @@ Route::get('outsidemarket', [outsidemarketplace::class,'marketpage'])->name('out
 // Route::get('deletemarketproduct/{id}', [marketplace::class,'deleteproduct'])->name('deletemarketproduct');
 // Route::get('editmarketproduct/{id}', [marketplace::class,'editmarketproduct'])->name('editmarketproduct');
 // Route::post('storeeditproduct', [marketplace::class,'editmarket'])->name('storeeditproduct');
-Route::get('/checkout/{order}', [CheckoutPageController::class,'show']); // serves HTML + opayoCheckout
-Route::get('/payment-return', [PaymentReturnController::class,'handle']);
+// Route::get('/checkout/{order}', [CheckoutPageController::class,'show']); // serves HTML + opayoCheckout
+// Route::get('/payment-return', [PaymentReturnController::class,'handle']);
+
+
+Route::get('/checkout/{order}', [PaymentController::class,'checkoutPage'])->name('checkout.page');
+Route::post('/payment-return', [PaymentController::class,'paymentReturn']); // optional callback/return page

@@ -62,6 +62,7 @@ use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\RefundController;
 use App\Http\Controllers\Api\OrderStatusController;
+use App\Http\Controllers\PaymentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -367,7 +368,10 @@ Route::group(['prefix' => 'customer'], function () {
 Route::post('sendNotification', [FcmController::class, 'sendNotification']);
 
 
-Route::post('/payment-orders', [CheckoutController::class,'create']);           // create order + checkout page url
-Route::get('/payment-orders/{order}/status', [OrderStatusController::class,'show']);
-Route::post('/transactions', [TransactionController::class,'store']);  // receives cardIdentifier from checkout page
-Route::post('/payment-orders/{order}/refund', [RefundController::class,'refund']);
+// Payment routes
+Route::post('/payment-orders', [PaymentController::class, 'createOrder']);
+Route::get('/payment-orders/{order}/status', [PaymentController::class, 'orderStatus']);
+// Route::post('/transactions', [PaymentController::class, 'registerTransaction']); // receives cardIdentifier from drop-in
+Route::post('/payment-orders/{order}/refund', [PaymentController::class, 'refund']);
+
+Route::post('transactions', [PaymentController::class, 'registerTransaction']);

@@ -6,48 +6,41 @@ use Illuminate\Support\Facades\Http;
 class OpayoService
 {
     protected $base;
-    protected $auth;
+    protected $key;
+    protected $pass;
 
     public function __construct()
     {
-        $this->base = rtrim(config('app.opayo_base', env('OPAYO_BASE')), '/');
-        $key = env('OPAYO_INTEGRATION_KEY');
-        $pass = env('OPAYO_INTEGRATION_PASSWORD');
-        $this->auth = base64_encode("{$key}:{$pass}");
+        $this->base = env('OPAYO_BASE', 'https://sandbox.opayo.eu.elavon.com/api/v1');
+        $this->key = env('OPAYO_INTEGRATION_KEY');
+        $this->pass = env('OPAYO_INTEGRATION_PASSWORD');
     }
 
-    protected function basicAuthHeaders()
+    protected function basicClient()
     {
-        return [
-            'Authorization' => 'Basic ' . $this->auth,
-            'Content-Type'  => 'application/json',
-        ];
+        return Http::withBasicAuth($this->key, $this->pass)
+                   ->withOptions(['verify' => filter_var(env('Guzzle_VERIFY', true), FILTER_VALIDATE_BOOLEAN)])
+                   ->acceptJson();
     }
 
-    // Create merchant session key
+    // Create Merchant Session Key
     public function createMerchantSessionKey(string $vendorName)
     {
         $url = $this->base . '/merchant-session-keys';
-        $resp = Http::withHeaders($this->basicAuthHeaders())
-            ->post($url, ['vendorName' => $vendorName]);
-
-        return $resp->throw()->json();
+        return $this->basicClient()->post($url, ['vendorName' => $vendorName]);
     }
 
-    // Create transaction (payment / refund / etc)
+    // Create Transaction (Payment / Refund / etc)
     public function createTransaction(array $payload)
     {
         $url = $this->base . '/transactions';
-        $resp = Http::withHeaders($this->basicAuthHeaders())
-            ->post($url, $payload);
-
-        return $resp; // do not throw here; caller will inspect status
+        return $this->basicClient()->post($url, $payload);
     }
 
+    // Retrieve a transaction
     public function retrieveTransaction(string $transactionId)
     {
-        $url = $this->base . "/transactions/{$transactionId}";
-        $resp = Http::withHeaders($this->basicAuthHeaders())->get($url);
-        return $resp->throw()->json();
+        $url = $this->base . '/transactions/' . $transactionId;
+        return $this->basicClient()->get($url);
     }
 }
