@@ -34,7 +34,7 @@ class PaymentController extends Controller
         // create merchantSessionKey server-side
         $resp = $this->opayo->createMerchantSessionKey(env('OPAYO_VENDOR'));
         if ($resp->failed()) {
-            \Log::error('MSK failed', ['status'=>$resp->status(),'body'=>$resp->body()]);
+            // \Log::error('MSK failed', ['status'=>$resp->status(),'body'=>$resp->body()]);
             abort(500, 'Payment provider error');
         }
         $body = $resp->json();
@@ -43,67 +43,106 @@ class PaymentController extends Controller
     }
 
     // 3) Register transaction: backend receives cardIdentifier from drop-in
-    public function registerTransaction(Request $r)
-    {
-        $data = $r->validate([
-            'order_id' => 'required|integer|exists:orders,id',
-            'merchantSessionKey' => 'required|string',
-            'cardIdentifier' => 'required|string'
-        ]);
+public function registerTransaction(Request $r)
+{
+    // Validate incoming request
+    $data = $r->validate([
+        'order_id' => 'required|integer|exists:orders,id',
+        'merchantSessionKey' => 'required|string',
+        'cardIdentifier' => 'required|string'
+    ]);
 
-        $order = Order::findOrFail($data['order_id']);
+    $order = Order::findOrFail($data['order_id']);
 
-        $vendorTxCode = 'order-'.$order->id.'-'.uniqid();
-
-        $payload = [
-            'transactionType' => 'Payment',
-            'vendorTxCode' => $vendorTxCode,
-            'amount' => $order->amount, // in pence
-            'currency' => $order->currency,
-            'paymentMethod' => [
-                'card' => [
-                    'merchantSessionKey' => $data['merchantSessionKey'],
-                    'cardIdentifier' => $data['cardIdentifier'],
-                    'reusable' => false
-                ]
-            ],
-            'customerEmail' => $order->customer_email ?? null,
-            'customerPhone' => $order->customer_phone ?? null
-        ];
-
-        // store initial payment attempt
-        $payment = Payment::create([
-            'order_id' => $order->id,
-            'transaction_type' => 'Payment',
-            'vendor_tx_code' => $vendorTxCode,
-            'amount' => $order->amount,
-            'currency' => $order->currency,
-            'raw_request' => $payload
-        ]);
-
-        $resp = $this->opayo->createTransaction($payload);
-
-        $payment->raw_response = $resp->body();
-        $payment->status = $resp->json('status') ?? $resp->status();
-        if ($resp->status() == 201) {
-            $body = $resp->json();
-            $payment->transaction_id = $body['transactionId'] ?? null;
-            $payment->requires_3ds = false;
-            $order->update(['status' => 'paid']);
-        } elseif ($resp->status() == 202) {
-            // 3DS required — response contains paReq/md/acsUrl or 3DSv2 elements
-            $body = $resp->json();
-            $payment->requires_3ds = true;
-            $payment->three_ds_data = $body; // store whole body for processing
-            // return to frontend so drop-in can handle challenge if using hosted drop-in
-        } else {
-            // failed
-            $order->update(['status' => 'payment_failed']);
-        }
-        $payment->save();
-
-        return response()->json(['status'=>$resp->status(),'body'=>$resp->json()], $resp->status());
+    // Ensure amount is numeric and positive
+    if (!is_numeric($order->amount) || $order->amount <= 0) {
+        return response()->json([
+            'status' => 422,
+            'body' => ['errors' => [['description' => 'Invalid order amount', 'property' => 'amount', 'code' => 1016]]]
+        ], 422);
     }
+
+    // Generate unique vendorTxCode
+    $vendorTxCode = 'order-' . $order->id . '-' . uniqid();
+
+    /**
+     * Convert amount to pence (integer)
+     */
+    $amountInPence = (int) round(floatval($order->amount) * 100);
+
+    $payload = [
+        "transactionType" => "Payment",
+        "vendorTxCode"    => $vendorTxCode,
+        "amount" => $amountInPence,
+        "currency" => $order->currency ?? "GBP",
+        "description" => "Order #{$order->id} payment",
+        "paymentMethod" => [
+            "card" => [
+                "merchantSessionKey" => $data['merchantSessionKey'],
+                "cardIdentifier"     => $data['cardIdentifier'],
+                "reusable"           => false
+            ]
+        ],
+        // Move customer fields to root level
+        "customerFirstName" => $order->customer_first_name ?? "Customer",
+        "customerLastName"  => $order->customer_last_name ?? "Name",
+        "billingAddress" => [
+            "address1"    => $order->billing_address_line1 ?? "88",
+            "city"        => $order->billing_city ?? "N/A",
+            "postalCode"  => "412",
+            "country"     => $order->billing_country ?? "GB"
+        ],
+        // Keep email and phone at root level as well
+        "customerEmail" => $order->customer_email ?? "unknown@example.com",
+        "customerPhone" => $order->customer_phone ?? null
+    ];
+
+    /**
+     * Store initial payment attempt
+     */
+    $payment = Payment::create([
+        'order_id'         => $order->id,
+        'transaction_type' => 'Payment',
+        'vendor_tx_code'   => $vendorTxCode,
+        'amount'           => $order->amount,
+        'currency'         => $order->currency ?? "GBP",
+        'raw_request'      => $payload
+    ]);
+
+    /**
+     * Perform API call
+     */
+    $resp = $this->opayo->createTransaction($payload);
+
+    $payment->raw_response = $resp->body();
+    $payment->status = $resp->json('status') ?? $resp->status();
+
+    /**
+     * Handle API responses
+     */
+    if ($resp->status() == 201) { // Payment SUCCESS
+        $body = $resp->json();
+        $payment->transaction_id = $body['transactionId'] ?? null;
+        $payment->requires_3ds = false;
+
+        $order->update(['status' => 'paid']);
+    } elseif ($resp->status() == 202) { // 3D SECURE REQUIRED
+        $body = $resp->json();
+        $payment->requires_3ds = true;
+        $payment->three_ds_data = $body;
+        // Order is NOT marked as paid yet
+    } else { // Other → FAILED
+        $order->update(['status' => 'payment_failed']);
+    }
+
+    $payment->save();
+
+    return response()->json([
+        'status' => $resp->status(),
+        'body'   => $resp->json()
+    ], $resp->status());
+}
+
 
     // 4) Order status
     public function orderStatus(Order $order)
