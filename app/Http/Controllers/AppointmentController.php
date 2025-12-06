@@ -29,11 +29,11 @@ class AppointmentController extends Controller
      * @return \Illuminate\Http\Response
      */
 
-    public $fcmController;
+    // public $fcmController;
 
     public function __construct()
     {
-        $this->fcmController = new FcmController();
+        // $this->fcmController = new FcmController();
     }
     public function index()
     {
@@ -165,12 +165,12 @@ class AppointmentController extends Controller
                 }
 
                 if (Auth::user()->device_token != null) {
-                    $this->fcmController->sendNotification(new \Illuminate\Http\Request([
-                        'token' => Auth::user()->device_token,
-                        'title' => 'New Appointment',
-                        'body' => 'Your appointment has been booked.',
-                        'email' => Auth::user()->email,
-                    ]));
+                    // $this->fcmController->sendNotification(new \Illuminate\Http\Request([
+                    //     'token' => Auth::user()->device_token,
+                    //     'title' => 'New Appointment',
+                    //     'body' => 'Your appointment has been booked.',
+                    //     'email' => Auth::user()->email,
+                    // ]));
                 }
 
                 $barber = Barber::find($request->barber_id);
@@ -178,22 +178,22 @@ class AppointmentController extends Controller
                 
                 if ($user->device_token != null) {
 
-                    $this->fcmController->sendNotification(new \Illuminate\Http\Request([
-                        'token' => $user->device_token,
-                        'title' => 'New Appointment',
-                        'body' => 'You have a new appointment request.',
-                        'email' => $user->email,
-                    ]));
+                    // $this->fcmController->sendNotification(new \Illuminate\Http\Request([
+                    //     'token' => $user->device_token,
+                    //     'title' => 'New Appointment',
+                    //     'body' => 'You have a new appointment request.',
+                    //     'email' => $user->email,
+                    // ]));
                 }
 
                 if ($barber->device_token != null) {
 
-                    $this->fcmController->sendNotification(new \Illuminate\Http\Request([
-                        'token' => $barber->device_token,
-                        'title' => 'New Appointment',
-                        'body' => 'You have a new appointment request.',
-                        'email' => $barber->email,
-                    ]));
+                    // $this->fcmController->sendNotification(new \Illuminate\Http\Request([
+                    //     'token' => $barber->device_token,
+                    //     'title' => 'New Appointment',
+                    //     'body' => 'You have a new appointment request.',
+                    //     'email' => $barber->email,
+                    // ]));
                 }
 
                 $log = [
@@ -372,24 +372,24 @@ class AppointmentController extends Controller
                 // Mail::to(Auth::user()->email)->send(new AppointmentMail($usermaildata));
 
                 if (Auth::user()->device_token != null) {
-                    $this->fcmController->sendNotification(new \Illuminate\Http\Request([
-                        'token' => Auth::user()->device_token,
-                        'title' => 'Appointment Updated',
-                        'body' => 'Your appointment has been updated.',
-                        'email' => Auth::user()->email,
-                    ]));
+                    // $this->fcmController->sendNotification(new \Illuminate\Http\Request([
+                    //     'token' => Auth::user()->device_token,
+                    //     'title' => 'Appointment Updated',
+                    //     'body' => 'Your appointment has been updated.',
+                    //     'email' => Auth::user()->email,
+                    // ]));
                 }
 
                 $barber = Barber::find($request->barber_id);
                 $user = User::find($barber->barber_of);
                 if ($user->device_token != null) {
 
-                    $this->fcmController->sendNotification(new \Illuminate\Http\Request([
-                        'token' => $user->device_token,
-                        'title' => 'Updated Appointment',
-                        'body' => 'You have an updated appointment.',
-                        'email' => $user->email,
-                    ]));
+                    // $this->fcmController->sendNotification(new \Illuminate\Http\Request([
+                    //     'token' => $user->device_token,
+                    //     'title' => 'Updated Appointment',
+                    //     'body' => 'You have an updated appointment.',
+                    //     'email' => $user->email,
+                    // ]));
                 }
 
                 $log = [

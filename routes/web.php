@@ -322,5 +322,5 @@ Route::get('outsidemarket', [outsidemarketplace::class,'marketpage'])->name('out
 // Route::get('/payment-return', [PaymentReturnController::class,'handle']);
 
 
-Route::get('/checkout/{order}', [PaymentController::class,'checkoutPage'])->name('checkout.page');
+Route::get('/checkout/{order}/{appointment}', [PaymentController::class,'checkoutPage'])->name('checkout.page');
 Route::post('/payment-return', [PaymentController::class,'paymentReturn']); // optional callback/return page

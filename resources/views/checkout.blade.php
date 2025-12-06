@@ -10,6 +10,7 @@
     body{font-family:sans-serif;padding:20px;max-width:800px;margin:0 auto;background:#f5f5f5;}
     .checkout-container{background:#fff;padding:30px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1);}
     .amount{font-size:22px;margin-bottom:25px;}
+    .payment{font-size:23px;margin-bottom:25px;}
     #submit-button{padding:12px 30px;background:#007bff;color:#fff;border:none;border-radius:4px;font-size:16px;cursor:pointer;}
     #submit-button:disabled{background:#ccc;}
     .opayo-error{display:none;background:#f8d7da;color:#721c24;border:1px solid #f5c6cb;padding:12px;border-radius:4px;margin-top:20px;}
@@ -25,6 +26,8 @@
   <div class="amount">
     Order #{{ $order->id }} — £{{ number_format($order->amount / 100, 2) }}
   </div>
+
+  <div class="payment">Appointment #{{ $appointment->id }}</div>
 
   <form id="checkout-form" onsubmit="return false;">
     <div id="sp-container"></div>
@@ -45,6 +48,7 @@
 <script>
 (function () {
   const orderId = {{ $order->id }};
+  const appointmentId = {{ $appointment->id }};
   const msk = "{{ $merchantSessionKey }}";
 
   const submitBtn = document.getElementById("submit-button");
@@ -124,9 +128,10 @@ function onToken(result) {
 // Add this new function to handle the actual payment processing
 async function processPayment(cardIdentifier) {
     const payload = {
-        order_id: orderId,
-        merchantSessionKey: msk,
-        cardIdentifier: cardIdentifier
+      appointment_id: appointmentId,
+      order_id: orderId,
+      merchantSessionKey: msk,
+      cardIdentifier: cardIdentifier
     };
 
     debug("Sending to backend:", payload);

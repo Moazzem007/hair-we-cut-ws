@@ -299,6 +299,9 @@ Route::group(['prefix' => 'customer'], function () {
         // Appointments
         Route::post('appointment', [AppointmentController::class, 'store']);
 
+        // Create payment
+        Route::post('/payment-order', [PaymentController::class, 'createPaymentOrder']);
+
         Route::get('/reschedule-requests', [AppointmentRescheduleController::class, 'listCustomerReschedules']);
 
         Route::post('/appointment-reschedule-response/{rescheduleId}', [AppointmentRescheduleController::class, 'respondReschedule']);
@@ -369,9 +372,9 @@ Route::post('sendNotification', [FcmController::class, 'sendNotification']);
 
 
 // Payment routes
-Route::post('/payment-orders', [PaymentController::class, 'createOrder']);
-Route::get('/payment-orders/{order}/status', [PaymentController::class, 'orderStatus']);
+
+Route::get('/payment-order/{order}/status', [PaymentController::class, 'orderStatus']);
 // Route::post('/transactions', [PaymentController::class, 'registerTransaction']); // receives cardIdentifier from drop-in
-Route::post('/payment-orders/{order}/refund', [PaymentController::class, 'refund']);
+Route::post('/payment-order/{order}/refund', [PaymentController::class, 'refund']);
 
 Route::post('transactions', [PaymentController::class, 'registerTransaction']);

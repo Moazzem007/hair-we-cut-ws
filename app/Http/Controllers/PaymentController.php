@@ -1,6 +1,8 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Appointment;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 use App\Services\OpayoService;
 use App\Models\PaymentOrders as Order;
@@ -12,9 +14,9 @@ class PaymentController extends Controller
     public function __construct(OpayoService $opayo) { $this->opayo = $opayo; }
 
     // 1) Create Order (API)
-    public function createOrder(Request $r)
+    public function createPaymentOrder(Request $r)
     {
-        $data = $r->validate(['amount'=>'required|numeric','currency'=>'required','reference'=>'nullable|string']);
+        $data = $r->validate(['appointment_id'=>'required|numeric','amount'=>'required|numeric','currency'=>'required','reference'=>'nullable|string']);
         // create local order (simplified)
         $order = Order::create([
             'reference' => $data['reference'] ?? 'ORD-'.time(),
@@ -22,14 +24,18 @@ class PaymentController extends Controller
             'currency' => $data['currency']
         ]);
 
+        $appointment = Appointment::find($data['appointment_id']);
+        $appointment->payment_status = 'pending';
+        $appointment->update();
+
         return response()->json([
             'order_id' => $order->id,
-            'checkout_url' => url('/checkout/'.$order->id)
+            'checkout_url' => url('/checkout/'.$order->id.'/'.$data['appointment_id'])
         ], 201);
     }
 
     // 2) Checkout page (webview) — returns Blade with merchantSessionKey
-    public function checkoutPage(Order $order)
+    public function checkoutPage(Order $order, Appointment $appointment)
     {
         // create merchantSessionKey server-side
         $resp = $this->opayo->createMerchantSessionKey(env('OPAYO_VENDOR'));
@@ -39,7 +45,7 @@ class PaymentController extends Controller
         }
         $body = $resp->json();
         $merchantSessionKey = $body['merchantSessionKey'] ?? null;
-        return view('checkout', compact('order','merchantSessionKey'));
+        return view('checkout', compact('order','merchantSessionKey', 'appointment'));
     }
 
     // 3) Register transaction: backend receives cardIdentifier from drop-in
@@ -47,12 +53,43 @@ public function registerTransaction(Request $r)
 {
     // Validate incoming request
     $data = $r->validate([
+        'appointment_id' => 'required|integer|exists:appointments,id',
         'order_id' => 'required|integer|exists:orders,id',
         'merchantSessionKey' => 'required|string',
         'cardIdentifier' => 'required|string'
     ]);
 
     $order = Order::findOrFail($data['order_id']);
+    $appointment = Appointment::findOrFail($data['appointment_id']);
+    if(!$appointment){
+        return response()->json([
+            'status' => 422,
+            'body' => ['errors' => [['description' => 'Invalid appointment id', 'property' => 'appointment_id', 'code' => 1016]]]
+        ], 422);
+    }
+    $customer = Customer::findOrFail($appointment->customer_id);
+    if(!$customer){
+        return response()->json([
+            'status' => 422,
+            'body' => ['errors' => [['description' => 'Invalid customer id', 'property' => 'customer_id', 'code' => 1016]]]
+        ], 422);
+    }
+
+    if(!$customer->postal_code){
+        return response()->json([
+            'status' => 422,
+            'body' => ['errors' => [['description' => 'Postal code not found', 'property' => 'postal_code', 'code' => 1016]]]
+        ], 422);
+    }
+
+    if(!$customer->billing_address){
+        return response()->json([
+            'status' => 422,
+            'body' => ['errors' => [['description' => 'Billing address not found', 'property' => 'billing_address', 'code' => 1016]]]
+        ], 422);
+    }
+
+
 
     // Ensure amount is numeric and positive
     if (!is_numeric($order->amount) || $order->amount <= 0) {
@@ -74,7 +111,7 @@ public function registerTransaction(Request $r)
         "transactionType" => "Payment",
         "vendorTxCode"    => $vendorTxCode,
         "amount" => $amountInPence,
-        "currency" => $order->currency ?? "GBP",
+        "currency" => "GBP",
         "description" => "Order #{$order->id} payment",
         "paymentMethod" => [
             "card" => [
@@ -84,17 +121,17 @@ public function registerTransaction(Request $r)
             ]
         ],
         // Move customer fields to root level
-        "customerFirstName" => $order->customer_first_name ?? "Customer",
-        "customerLastName"  => $order->customer_last_name ?? "Name",
+        "customerFirstName" => $customer->name ?? "Customer",
+        "customerLastName"  => "Name",
         "billingAddress" => [
-            "address1"    => $order->billing_address_line1 ?? "88",
-            "city"        => $order->billing_city ?? "N/A",
-            "postalCode"  => "412",
-            "country"     => $order->billing_country ?? "GB"
+            "address1"    => $customer->billing_address,
+            "city"        => "N/A",
+            "postalCode"  => $customer->postal_code,
+            "country"     => "GB"
         ],
         // Keep email and phone at root level as well
-        "customerEmail" => $order->customer_email ?? "unknown@example.com",
-        "customerPhone" => $order->customer_phone ?? null
+        "customerEmail" => $customer->email ?? "unknown@example.com",
+        "customerPhone" => $customer->contact ?? null
     ];
 
     /**
@@ -126,6 +163,7 @@ public function registerTransaction(Request $r)
         $payment->requires_3ds = false;
 
         $order->update(['status' => 'paid']);
+        $appointment->update(['payment_status' => 'paid']);
     } elseif ($resp->status() == 202) { // 3D SECURE REQUIRED
         $body = $resp->json();
         $payment->requires_3ds = true;
@@ -133,6 +171,7 @@ public function registerTransaction(Request $r)
         // Order is NOT marked as paid yet
     } else { // Other → FAILED
         $order->update(['status' => 'payment_failed']);
+        $appointment->update(['payment_status' => 'failed']);
     }
 
     $payment->save();

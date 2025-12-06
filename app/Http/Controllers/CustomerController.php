@@ -183,6 +183,13 @@ class CustomerController extends Controller
 
             $row = Customer::find($request->id);
 
+            if ($request->has('billing_address')) {
+                $row->billing_address = $request->billing_address;
+            }
+            if ($request->has('postal_code')) {
+                $row->postal_code = $request->postal_code;
+            }
+
         if ($request->hasFile('image')) {
 
                 $file=$request->file('image');
