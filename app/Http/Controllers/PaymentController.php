@@ -110,17 +110,18 @@ public function registerTransaction(Request $r)
         "customerEmail" => $customer->email ?? "unknown@example.com",
         "customerPhone" => $customer->contact ?? null,
         "strongCustomerAuthentication" => [
-            "authenticationMethod" => "browser",
-            "challengeIndicator" => "noPreference",
-            "browserAcceptHeader" => $r->header('accept') ?? 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            "browserUserAgent" => $r->header('user-agent') ?? 'Mozilla/5.0',
-            "browserJavascriptEnabled" => true,
-            "browserLanguage" => $browserLanguage,
-            "browserColorDepth" => 24,
-            "browserScreenHeight" => 1080,
-            "browserScreenWidth" => 1920,
-            "browserTZ" => 0
-        ]
+    "authenticationMethod"     => "browser",
+    "challengeIndicator"       => "noPreference",
+    "browserAcceptHeader"      => $r->header('accept') ?? 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    "browserUserAgent"         => $r->header('user-agent') ?? 'Mozilla/5.0',
+    "browserJavascriptEnabled" => true,
+    "browserLanguage"          => explode(',', $r->header('accept-language') ?? 'en')[0],
+    "browserColorDepth"        => 24,
+    "browserScreenHeight"      => 1080,
+    "browserScreenWidth"       => 1920,
+    "browserTZ"                => 0,
+    "notificationURL"          => route('opayo.3ds.notify') // <-- NEW required field
+]
     ];
 
     $payment = Payment::create([
@@ -230,6 +231,13 @@ public function registerTransaction(Request $r)
     // Optional return view after payment
     public function paymentReturn(Request $r) {
         return view('payment-return', ['query'=>$r->all()]);
+    }
+
+    public function handle3DSNotification(Request $request)
+    {
+        Log::info('3DS Notification received', $request->all());
+        // Update your Payment & Order status here based on $request payload
+        return response()->json(['status' => 'ok']);
     }
 }
 

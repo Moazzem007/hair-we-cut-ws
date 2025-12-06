@@ -378,3 +378,4 @@ Route::post('/payment-order/{order}/refund', [PaymentController::class, 'refund'
 
 // Route::post('transactions', [PaymentController::class, 'registerTransaction']);
 Route::middleware('api')->post('/transactions', [PaymentController::class, 'registerTransaction']);
+Route::post('/api/opayo/3ds/notify', [PaymentController::class, 'handle3DSNotification'])->name('opayo.3ds.notify');
