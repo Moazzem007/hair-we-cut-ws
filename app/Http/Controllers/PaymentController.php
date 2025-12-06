@@ -83,7 +83,6 @@ public function registerTransaction(Request $r)
     $vendorTxCode = 'order-' . $order->id . '-' . uniqid();
     $amountInPence = (int) round(floatval($order->amount) * 100);
 
-    // Proper browser language & headers
     $acceptLang = $r->header('accept-language') ?? 'en';
     $browserLanguage = explode(',', $acceptLang)[0];
 
@@ -133,14 +132,17 @@ public function registerTransaction(Request $r)
         'raw_request' => $payload
     ]);
 
+    $resp = null; // <-- initialize here to avoid undefined variable
+
     try {
         $resp = $this->opayo->createTransaction($payload);
         $body = $resp->json();
     } catch (\Exception $e) {
-        $body = ['error' => true, 'message' => $e->getMessage(), 'raw' => $resp->body() ?? ''];
+        Log::error('Opayo transaction failed', ['exception' => $e->getMessage()]);
+        $body = ['error' => true, 'message' => $e->getMessage(), 'raw' => method_exists($resp,'body') ? $resp->body() : null];
     }
 
-    $payment->raw_response = $resp->body() ?? '';
+    $payment->raw_response = method_exists($resp,'body') ? $resp->body() : '';
     $payment->status = $resp->status() ?? 500;
 
     if (isset($body['3DSecure']) && $body['3DSecure']['status'] === 'NotChecked') {
@@ -148,7 +150,7 @@ public function registerTransaction(Request $r)
         $payment->three_ds_data = $body;
         $order->update(['status' => '3ds_required']);
         $appointment->update(['payment_status' => '3ds_required']);
-    } elseif ($body['status'] === 'Ok' || $body['status'] === 'Authenticated') {
+    } elseif ($body['status'] === 'Ok' || $body['3DSecure']['status'] === 'Authenticated') {
         $payment->transaction_id = $body['transactionId'] ?? null;
         $payment->requires_3ds = false;
         $order->update(['status' => 'paid']);
@@ -166,6 +168,7 @@ public function registerTransaction(Request $r)
         'body' => $body
     ], $resp->status() ?? 500);
 }
+
 
 
 
