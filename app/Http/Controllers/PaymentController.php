@@ -118,18 +118,76 @@ public function registerTransaction(Request $r)
             "customerPhone" => $customer->contact ?? null,
             "apply3DSecure" => "Force",
             "strongCustomerAuthentication" => [
-                "notificationURL" => route('handle3DSNotification'),
-                "browserAcceptHeader" => $r->header('Accept') ?? '*/*',
-                "browserIP" => $r->ip(),
-                "browserUserAgent" => $r->header('User-Agent') ?? 'Unknown',
-                "browserJavaEnabled" => true,
-                "browserLanguage" => substr($r->header('Accept-Language') ?? 'en-GB',0,8),
-                "browserColorDepth" => 24,
-                "browserScreenHeight" => 1080,
-                "browserScreenWidth" => 1920,
-                "challengeWindowSize" => "Small",
-                "browserTZ" => 0
-            ]
+    // Required fields
+    "notificationURL" => url('/3ds-notification'), // Must be HTTPS
+    "browserIP" => $r->ip() ?: '1.1.1.1', // Fallback IP if not available
+    "browserAcceptHeader" => $r->header('Accept') ?? 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+    "browserUserAgent" => $r->header('User-Agent') ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    "browserJavaEnabled" => true,
+    "browserJavascriptEnabled" => true, // Required for 3DS2
+    "browserLanguage" => substr($r->header('Accept-Language', 'en-GB'), 0, 8),
+    "browserColorDepth" => (string)($r->input('browserColorDepth') ?? 24), // Must be string
+    "browserScreenHeight" => (string)($r->input('browserScreenHeight') ?? '1080'), // Must be string
+    "browserScreenWidth" => (string)($r->input('browserScreenWidth') ?? '1920'), // Must be string
+    "browserTZ" => (string)($r->input('browserTZ') ?? '0'), // Timezone offset in minutes, must be string
+    "browserChallengeWindowSize" => "Small", // Small=250x400, Medium=390x400, FullScreen=fullscreen
+    "challengeWindowSize" => "Small", // For backward compatibility
+    "transType" => "GoodsAndServicePurchase", // Or "CheckAcceptance", "AccountFunding", "QuasiCash", "PrePaidVacation"
+    "threeDSRequestorChallengeInd" => "01", // 01 = No preference, 02 = No challenge requested, 03 = Challenge requested (3DS Requestor preference), 04 = Challenge requested (Mandate)
+    "threeDSRequestorAuthenticationInd" => "01", // 01 = Payment transaction, 02 = Recurring transaction, 03 = Installment transaction, 04 = Add card, 05 = Maintain card, 06 = Cardholder verification, 07 = Billing agreement, 08 = Split/delayed shipment, 09 = Split shipment, 10 = Top-up, 11 = Mail order, 12 = Telephone order, 13 = Whitelist status check, 14 = Other payment, 15 = Billing, 16 = Maintenance, 17 = No show, 18 = Re-authorisation, 19 = Resubmission, 20 = Delayed charge, 21 = Re-presentment, 22 = Repeat transaction, 23 = Cardholder account verification, 24 = Split shipment, 25 = Subscription, 26 = Terms and conditions acceptance, 27 = Installment, 28 = Update card, 29 = Create card, 30 = Token, 31 = Token update, 32 = Token delete, 33 = Token status change, 34 = Account verification, 35 = Account creation, 36 = Account update, 37 = Account closure, 38 = Account check, 39 = Account funding, 40 = Account funding from, 41 = Account funding to, 42 = Payment method update, 43 = Payment method token update, 44 = Payment method token delete, 45 = Payment method token status change, 46 = Recurring payment, 47 = Recurring payment update, 48 = Recurring payment delete, 49 = Recurring payment status change, 50 = Recurring payment cancellation, 51 = Recurring payment suspension, 52 = Recurring payment reactivation, 53 = Recurring payment completion, 54 = Recurring payment failure, 55 = Recurring payment success, 56 = Recurring payment cancellation request, 57 = Recurring payment suspension request, 58 = Recurring payment reactivation request, 59 = Recurring payment completion request, 60 = Recurring payment failure request, 61 = Recurring payment success request, 62 = Recurring payment cancellation response, 63 = Recurring payment suspension response, 64 = Recurring payment reactivation response, 65 = Recurring payment completion response, 66 = Recurring payment failure response, 67 = Recurring payment success response, 68 = Recurring payment cancellation notification, 69 = Recurring payment suspension notification, 70 = Recurring payment reactivation notification, 71 = Recurring payment completion notification, 72 = Recurring payment failure notification, 73 = Recurring payment success notification, 74 = Recurring payment cancellation confirmation, 75 = Recurring payment suspension confirmation, 76 = Recurring payment reactivation confirmation, 77 = Recurring payment completion confirmation, 78 = Recurring payment failure confirmation, 79 = Recurring payment success confirmation, 80 = Recurring payment cancellation rejection, 81 = Recurring payment suspension rejection, 82 = Recurring payment reactivation rejection, 83 = Recurring payment completion rejection, 84 = Recurring payment failure rejection, 85 = Recurring payment success rejection, 86 = Recurring payment cancellation error, 87 = Recurring payment suspension error, 88 = Recurring payment reactivation error, 89 = Recurring payment completion error, 90 = Recurring payment failure error, 91 = Recurring payment success error, 92 = Recurring payment cancellation timeout, 93 = Recurring payment suspension timeout, 94 = Recurring payment reactivation timeout, 95 = Recurring payment completion timeout, 96 = Recurring payment failure timeout, 97 = Recurring payment success timeout, 98 = Recurring payment cancellation unknown, 99 = Recurring payment suspension unknown, 100 = Recurring payment reactivation unknown, 101 = Recurring payment completion unknown, 102 = Recurring payment failure unknown, 103 = Recurring payment success unknown
+    "threeDSRequestorAuthenticationInfo" => [
+        "threeDSReqAuthMethod" => "01", // 01 = No 3DS Requestor authentication occurred, 02 = Login to the cardholder account at the 3DS Requestor system, 03 = Login to the cardholder account at the 3DS Requestor system using credentials, 04 = Login to the cardholder account at the 3DS Requestor system using federated ID, 05 = Login to the cardholder account at the 3DS Requestor system using issuer credentials, 06 = Login to the cardholder account at the 3DS Requestor system using third-party authentication, 07 = Login to the cardholder account at the 3DS Requestor system using FIDO Authenticator, 08 = Login to the cardholder account at the 3DS Requestor system using FIDO Authenticator (FIDO Alliance) score, 09 = Login to the cardholder account at the 3DS Requestor system using FIDO Authenticator (EMVCo.) score, 10-79 = Reserved for EMVCo. use, 80-99 = Reserved for DS use
+        "threeDSReqAuthTimestamp" => now()->toIso8601String(), // Format: YYYYMMDDHHmm
+        "threeDSReqAuthData" => "fido" // Additional authentication data
+    ],
+    "acctID" => (string)$customer->id, // Must be string
+    "merchantRiskIndicator" => [
+        "deliveryEmailAddress" => $customer->email ?? "noreply@example.com",
+        "deliveryTimeframe" => "01", // 01 = Electronic Delivery, 02 = Same day shipping, 03 = Overnight shipping, 04 = Two-day or more shipping
+        "giftCardAmount" => 0, // Must be 0 for non-gift card purchases
+        "giftCardCount" => 0, // Must be 0 for non-gift card purchases
+        "giftCardCurrency" => "GBP", // Must be set if giftCardAmount > 0
+        "preOrderDate" => "", // Format: YYYY-MM-DD
+        "preOrderPurchaseInd" => "01", // 01 = Merchandise available, 02 = Future availability
+        "reorderItemsInd" => "01", // 01 = First time ordered, 02 = Reordered
+        "shipIndicator" => "01" // 01 = Ship to cardholder's billing address, 02 = Ship to another verified address on file with merchant, 03 = Ship to address that is different than the cardholder's billing address, 04 = "Ship to Store" / Pick-up at local store (Store address shall be populated in shipping address fields), 05 = Digital goods (includes online services, electronic gift cards and redemption codes), 06 = Travel and Event tickets, not shipped, 07 = Other (for example, Gaming, digital services not shipped, emedia subscriptions, etc.)
+    ],
+    "threeDSRequestorPriorAuthenticationInfo" => [
+        "threeDSReqPriorAuthMethod" => "01", // 01 = Frictionless authentication occurred, 02 = Cardholder challenge occurred, 03 = AVS verified, 04 = Other issuer methods
+        "threeDSReqPriorAuthTimestamp" => now()->subHours(1)->toIso8601String(), // Format: YYYYMMDDHHmm
+        "threeDSReqPriorRef" => "" // Required if threeDSReqPriorAuthMethod is 01-03
+    ],
+    "threeDSRequestorChallengeInd" => "01", // 01 = No preference, 02 = No challenge requested, 03 = Challenge requested (3DS Requestor preference), 04 = Challenge requested (Mandate)
+    "sdkMaxTimeout" => "05", // 05 = 5 minutes (max allowed)
+    "sdkEphemPubKey" => [
+        "kty" => "EC",
+        "crv" => "P-256",
+        "x" => "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
+        "y" => "4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM"
+    ],
+    "sdkReferenceNumber" => "3DS_LOA_SDK_PPFU_020100_00007",
+    "sdkTransID" => (string) \Illuminate\Support\Str::uuid(),
+    "sdkInterface" => "01", // 01 = Native, 02 = HTML, 03 = Both
+    "sdkUiType" => ["01", "02", "03", "04", "05"], // 01 = Text, 02 = Single select, 03 = Multi-select, 04 = OOB, 05 = HTML
+    "accountInfo" => [
+        "chAccAgeInd" => "01", // 01 = No account (guest check-out), 02 = Created during this transaction, 03 = Less than 30 days, 04 = 30-60 days, 05 = More than 60 days
+        "chAccChange" => "01", // 01 = Changed during this transaction, 02 = Less than 30 days, 03 = 30-60 days, 04 = More than 60 days
+        "chAccChangeInd" => "01", // 01 = Changed during this transaction, 02 = Less than 30 days, 03 = 30-60 days, 04 = More than 60 days
+        "chAccDate" => now()->subDays(10)->format('Ymd'), // Format: YYYYMMDD
+        "chAccPwChange" => "01", // 01 = No change, 02 = Changed during this transaction, 03 = Less than 30 days, 04 = 30-60 days, 05 = More than 60 days
+        "chAccPwChangeInd" => "01", // 01 = No change, 02 = Changed during this transaction, 03 = Less than 30 days, 04 = 30-60 days, 05 = More than 60 days
+        "nbPurchaseAccount" => "1", // Number of purchases with this cardholder account in the last 6 months
+        "provisionAttemptsDay" => "1", // Number of Add Card attempts in the last 24 hours
+        "txnActivityDay" => "1", // Number of transactions with this cardholder account across all payment accounts in the last 24 hours
+        "txnActivityYear" => "1", // Number of transactions with this cardholder account across all payment accounts in the last year
+        "paymentAccAge" => "01", // 01 = No account (guest check-out), 02 = Created during this transaction, 03 = Less than 30 days, 04 = 30-60 days, 05 = More than 60 days
+        "paymentAccInd" => "01", // 01 = No account (guest check-out), 02 = Created during this transaction, 03 = Less than 30 days, 04 = 30-60 days, 05 = More than 60 days
+        "shipAddressUsage" => "01", // 01 = This transaction, 02 = Less than 30 days, 03 = 30-60 days, 04 = More than 60 days
+        "shipAddressUsageInd" => "01", // 01 = This transaction, 02 = Less than 30 days, 03 = 30-60 days, 04 = More than 60 days
+        "shipNameIndicator" => "01", // 01 = Account name identical to shipping name, 02 = Account name different than shipping name
+        "suspiciousAccActivity" => "01", // 01 = No suspicious activity has been observed, 02 = Suspicious activity has been observed
+    ]
+]
         ];
 
         // Store initial payment attempt
