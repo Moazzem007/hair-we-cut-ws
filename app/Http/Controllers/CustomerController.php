@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use App\Mail\UserSignUp;
 use Illuminate\Support\Facades\Log;
-use Stripe; 
+use Stripe;
 
 
 
@@ -31,7 +31,7 @@ class CustomerController extends Controller
      */
     public function index()
     {
- 
+
         $user = Auth::user();
 		   $user->img = asset($user->img);
         $useremail = Auth::user()->email;
@@ -44,7 +44,7 @@ class CustomerController extends Controller
         try {
 
             // $role = [
-                    
+
             //     'token'     => 'required',
             // ];
 
@@ -91,7 +91,7 @@ class CustomerController extends Controller
                 'Erorr'   => $e->getMessage(),
             ]);
         }
-        
+
     }
 
     /**
@@ -107,7 +107,7 @@ class CustomerController extends Controller
     public function signup(Request $request)
     {
         $role = [
-            
+
             'name'     => 'required|min:3',
             'email'    => 'email|required|unique:customers,email',
             'contact'  => 'required',
@@ -125,7 +125,7 @@ class CustomerController extends Controller
             ],400);
         }
         try {
-            
+
 
             if($request->token){
                 $token = $request->token;
@@ -178,16 +178,18 @@ class CustomerController extends Controller
     // Profile Update
     public function profileUpdate(Request $request)
     {
-        
+
         try {
 
-            $row = Customer::find($request->id);
+            $user = Auth::user();
 
-            if ($request->has('billing_address')) {
-                $row->billing_address = $request->billing_address;
+            $row = Customer::find($user->id);
+// return response()->json($row);
+            if ($request->input('billing_address')) {
+                $row->billing_address = $request->input('billing_address');
             }
-            if ($request->has('postal_code')) {
-                $row->postal_code = $request->postal_code;
+            if ($request->input('postal_code')) {
+                $row->postal_code = $request->input('postal_code');
             }
 
         if ($request->hasFile('image')) {
@@ -196,7 +198,10 @@ class CustomerController extends Controller
                 $filename=time().'.'.$file->getClientOriginalExtension();
                 $row->img=$request->file('image')->move('public/images',$filename);
             }
-            $row->name = $request->name;
+            if ($request->input('name')) {
+                $row->name = $request->input('name');
+            }
+
             $result    = $row->update();
 
 
@@ -208,8 +213,8 @@ class CustomerController extends Controller
                ]);
 
             }
-            
-            
+
+
 
         } catch (\Exception $e) {
 
@@ -224,7 +229,7 @@ class CustomerController extends Controller
     public function request_change_password(Request $request)
     {
         $role = [
-            
+
             'email'    => 'email|required',
 
         ];
@@ -249,7 +254,7 @@ class CustomerController extends Controller
                     'id'      => $customer->id,
                     'Message' => 'Valid User',
                 ]);
-                
+
             }else{
                 return  response()->json([
                     'success' => false,
@@ -258,7 +263,7 @@ class CustomerController extends Controller
                 ]);
              }
 
-            
+
         } catch (\Exception $e) {
 
             return  response()->json([
@@ -272,7 +277,7 @@ class CustomerController extends Controller
     public function request_update_password(Request $request)
     {
         $role = [
-            
+
             'id'       => 'required',
             'password' => 'required|min:8|confirmed',
         ];
@@ -299,10 +304,10 @@ class CustomerController extends Controller
                     'success' => true,
                     'Message' => 'Password Changed Successfully..!',
                 ]);
-                
+
             }
 
-            
+
         } catch (\Exception $e) {
 
             return  response()->json([
@@ -329,7 +334,7 @@ class CustomerController extends Controller
 
         $order = Order::where('customer_id',$userid)->with('soldproduct.product.category')->get();
         // $rating = Rating::where('user_id',$userid)->with('barber')->get();
-       
+
         return response()->json([
             'appointmentspending' => $appointmentspending,
             'appointmentscom' => $appointmentscom,
@@ -349,9 +354,9 @@ class CustomerController extends Controller
 
         $order = Order::where('customer_id',$userid)->with('soldproduct.product.category')->get();
         // $rating = Rating::where('user_id',$userid)->with('barber')->get();
-       
+
         return response()->json([
-            
+
             'order'        => $order,
             // 'reviewlist'   => $rating,
         ]);
@@ -364,16 +369,16 @@ class CustomerController extends Controller
 
         $orderpending = Order::where('customer_id',$userid)->where('status','Pending')->with('soldproduct.product')->get();
         $ordercom = Order::where('customer_id',$userid)->where('status','!=','Pending')->with('soldproduct.product')->get();
-    
-       
+
+
         return response()->json([
             'orderpending'        => $orderpending,
             'ordercom'        => $ordercom,
 
-          
+
         ]);
     }
-	
+
 
     public function customerordercancl($id){
         $ordercan = Order::find($id);
@@ -381,7 +386,7 @@ class CustomerController extends Controller
         $ordercan->update();
         return response()->json([
             'status'        => 'Order Canceled Succesfuly'
-          
+
         ]);
     }
 
@@ -389,7 +394,7 @@ class CustomerController extends Controller
     {
         $data = soldproduct::where('order_id',$id)->with('product')->get();
         return response()->json($data);
-        
+
     }
 
 
@@ -451,14 +456,14 @@ class CustomerController extends Controller
             $row       = Customer::find($id);
             $row->name = $request->name;
             $result    = $row->update();
-            
+
            if($result){
                 return response()->json([
                     'success' => true,
                     'Message' => "Customer Updated",
                 ]);
             }
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -485,9 +490,9 @@ class CustomerController extends Controller
 
     public function orderPost(Request $request)
     {
-            
+
         try {
-            
+
 
             $user = Auth::user();
             // Set your secret key. Remember to switch to your live secret key in production.
@@ -511,7 +516,7 @@ class CustomerController extends Controller
                 'customer'    => $customer->id,
                 'currency'    => 'gbp',
                 'description' => 'Appointment Amount',
-            ]);        
+            ]);
 
             $appdata = Appointment::with('service')->find($appid);
 
@@ -533,7 +538,7 @@ class CustomerController extends Controller
             $payResult = Wallet::create($paymentData);
 
             if ($payResult) {
-                
+
                 $row               = Appointment::find($appid);
                 $row->status       = "Paid";
                 $row->amount       = $amount;
@@ -557,9 +562,9 @@ class CustomerController extends Controller
 
             }
 
-            
 
-            
+
+
         } catch (\Exception $e) {
 
             return response()->json([
@@ -567,15 +572,15 @@ class CustomerController extends Controller
                 'Error' => $e->getMessage()
             ]);
         }
-            
+
     }
 
     // For APis Payment From Mobile Side
     public function orderPostfromapi(Request $request)
     {
-            
+
         try {
-            
+
 
             $user = Auth::user();
 
@@ -597,13 +602,13 @@ class CustomerController extends Controller
                 'debit'          => $amount,
                 'credit'         => 0,
                 'description'    => 'Appointment Booking Payment',
-                
+
             );
 
             $payResult = Wallet::create($paymentData);
 
             if ($payResult) {
-                
+
                 $row         = Appointment::find($appid);
                 $row->status = "Paid";
                 $result      = $row->update();
@@ -618,9 +623,9 @@ class CustomerController extends Controller
 
             }
 
-            
 
-            
+
+
         } catch (\Exception $e) {
 
             return response()->json([
@@ -628,14 +633,14 @@ class CustomerController extends Controller
                 'Error' => $e->getMessage()
             ]);
         }
-            
+
     }
 
 
     public function pricing()
     {
         try {
-            
+
             $service = Service::where('user_id','=',0)->get();
             return response()->json($service);
         } catch (\Exception $e) {
@@ -645,7 +650,7 @@ class CustomerController extends Controller
                 'Error' => $e->getMessage()
             ]);
         }
-       
+
     }
-  
+
 }

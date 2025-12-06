@@ -16,12 +16,12 @@ class PaymentController extends Controller
     // 1) Create Order (API)
     public function createPaymentOrder(Request $r)
     {
-        $data = $r->validate(['appointment_id'=>'required|numeric','amount'=>'required|numeric','currency'=>'required','reference'=>'nullable|string']);
+        $data = $r->validate(['appointment_id'=>'required|numeric','amount'=>'required|numeric','reference'=>'nullable|string']);
         // create local order (simplified)
         $order = Order::create([
             'reference' => $data['reference'] ?? 'ORD-'.time(),
             'amount' => intval(round($data['amount'] * 100)),
-            'currency' => $data['currency']
+            'currency' => 'GBP'
         ]);
 
         $appointment = Appointment::find($data['appointment_id']);
