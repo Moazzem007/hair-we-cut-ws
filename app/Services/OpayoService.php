@@ -11,7 +11,7 @@ class OpayoService
 
     public function __construct()
     {
-        $this->base = env('OPAYO_BASE', 'https://sandbox.opayo.eu.elavon.com/api/v1');
+        $this->base = env('OPAYO_BASE');
         $this->key = env('OPAYO_INTEGRATION_KEY');
         $this->pass = env('OPAYO_INTEGRATION_PASSWORD');
     }

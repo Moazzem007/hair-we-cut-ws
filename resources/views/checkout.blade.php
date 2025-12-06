@@ -40,10 +40,10 @@
 <pre id="debug"></pre>
 
 <!-- ✅ Correct Sandbox Script -->
-{{-- <script src="https://pi-test.sagepay.com/api/v1/js/sagepay.js"></script> --}}
+<script src="https://pi-test.sagepay.com/api/v1/js/sagepay.js"></script>
 
 <!-- ❗ Live Script (keep commented) -->
-<script src="https://pi-live.sagepay.com/api/v1/js/sagepay.js"></script>
+{{-- <script src="https://pi-live.sagepay.com/api/v1/js/sagepay.js"></script> --}}
 
 <script>
 (function () {
