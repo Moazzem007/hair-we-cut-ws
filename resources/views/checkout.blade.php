@@ -185,27 +185,56 @@ alert('3DS authentication required');
 }
 
 // Update the submit button click handler
+// submitBtn.addEventListener("click", async () => {
+//     submitBtn.disabled = true;
+//     submitBtn.textContent = "Processing…";
+
+//     try {
+//         // This will trigger the onToken callback
+//         alert('This will trigger the onToken callback');
+//         const result = await checkout.tokenise();
+//         console.log(result);
+//         alert('This will trigger the onToken callback (Logged)');
+        
+
+//         // If 3DS is required, the Drop-In will handle it
+//         if (result.requires3DS) {
+//             debug("3DS authentication required, showing challenge...");
+//             return;
+//         }
+// alert('calling processPayment');
+//         // If no 3DS required, process payment
+//         await processPayment(result.cardIdentifier);
+
+//     } catch (error) {
+//         console.error("Tokenization error:", error);
+//         showError("Failed to process payment. Please try again.");
+//         submitBtn.disabled = false;
+//         submitBtn.textContent = "Pay Now";
+//     }
+// });
+
 submitBtn.addEventListener("click", async () => {
     submitBtn.disabled = true;
     submitBtn.textContent = "Processing…";
 
     try {
         // This will trigger the onToken callback
-        alert('This will trigger the onToken callback');
         const result = await checkout.tokenise();
-        console.log(result);
-        alert('This will trigger the onToken callback (Logged)');
         
-
-        // If 3DS is required, the Drop-In will handle it
-        if (result.requires3DS) {
-            debug("3DS authentication required, showing challenge...");
-            return;
+        // Check if result exists and has success property
+        if (result && result.success) {
+            // If 3DS is required, the Drop-In will handle it
+            if (result.requires3DS) {
+                debug("3DS authentication required, showing challenge...");
+                return;
+            }
+            alert('calling processPayment');
+            // If no 3DS required, process payment
+            await processPayment(result.cardIdentifier);
+        } else {
+            throw new Error("Tokenization failed");
         }
-alert('calling processPayment');
-        // If no 3DS required, process payment
-        await processPayment(result.cardIdentifier);
-
     } catch (error) {
         console.error("Tokenization error:", error);
         showError("Failed to process payment. Please try again.");
@@ -215,11 +244,11 @@ alert('calling processPayment');
 });
 
 
-  submitBtn.addEventListener("click", ()=> {
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Processing…";
-    checkout.tokenise();
-  });
+  // submitBtn.addEventListener("click", ()=> {
+  //   submitBtn.disabled = true;
+  //   submitBtn.textContent = "Processing…";
+  //   checkout.tokenise();
+  // });
 
 })();
 </script>
