@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Services\OpayoService;
 use App\Models\PaymentOrders as Order;
 use App\Models\Payment;
+use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
@@ -151,9 +152,9 @@ public function registerTransaction(Request $r)
     /**
      * Perform API call
      */
-    return response()->json("hello");
+    
     $resp = $this->opayo->createTransaction($payload);
-
+    Log::info('create transaction', $resp);
     $payment->raw_response = $resp->body();
     $payment->status = $resp->json('status') ?? $resp->status();
 
