@@ -37,17 +37,13 @@
   <div id="opayo-errors" class="opayo-error"></div>
 </div>
 
-{{-- <pre id="debug" style="display: none"></pre> --}}
 <pre id="debug"></pre>
 
-<!-- ✅ Correct Sandbox Script -->
+<!-- Sandbox Sage Pay Drop-In -->
 <script src="https://pi-test.sagepay.com/api/v1/js/sagepay.js"></script>
 
-<!-- ❗ Live Script (keep commented) -->
-{{-- <script src="https://pi-live.sagepay.com/api/v1/js/sagepay.js"></script> --}}
-
 <script>
-(function () {
+(async function () {
   const orderId = {{ $order->id }};
   const appointmentId = {{ $appointment->id }};
   const msk = "{{ $merchantSessionKey }}";
@@ -56,10 +52,9 @@
   const errorBox = document.getElementById("opayo-errors");
   const debugEl = document.getElementById("debug");
 
-  function debug(...a){
-    return;
-    console.log(...a);
-    debugEl.textContent += a.map(x => typeof x === "object" ? JSON.stringify(x,null,2) : x).join(" ")+"\n";
+  function debug(...args) {
+    console.log(...args);
+    debugEl.textContent += args.map(x => typeof x === "object" ? JSON.stringify(x,null,2) : x).join(" ")+"\n";
   }
 
   function showError(msg){
@@ -69,17 +64,13 @@
 
   if(!window.sagepayCheckout){
     showError("Drop-in script failed to load.");
-    debug("sagepayCheckout missing");
     return;
   }
 
   if(!msk){
     showError("Missing Merchant Session Key.");
-    debug("Missing MSK");
     return;
   }
-
-  debug("Initializing checkout…");
 
   let checkout = null;
 
@@ -88,168 +79,92 @@
       merchantSessionKey: msk,
       onTokenise: onToken
     });
-
-    // 🟢 MUST mount using ONLY the selector string
     checkout.form("#sp-container");
-
     submitBtn.disabled = false;
     submitBtn.textContent = "Pay Now";
-
-    debug("Mounted using form('#sp-container')");
-  }
-  catch(e){
+    debug("Drop-In mounted");
+  } catch(e) {
     debug("Mount failed:", e);
     showError("Payment widget failed to load.");
     return;
   }
 
-
- // Replace the existing onToken function with this:
-function onToken(result) {
+  async function onToken(result){
     debug("Token callback:", result);
 
-    if (!result.success) {
-        showError(result.error.errorMessage || "Tokenisation failed");
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Pay Now";
-        return;
+    if(!result.success){
+      showError(result.error?.errorMessage || "Tokenisation failed");
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Pay Now";
+      return;
     }
 
-    // If 3DS is required, the Drop-In will handle the flow
-    if (result.requires3DS) {
-        debug("3DS authentication required, Drop-In will handle the flow");
-        // The Drop-In will automatically show the 3DS challenge if needed
-        // and call onToken again after 3DS completion
-        return;
+    if(result.requires3DS){
+      debug("3DS authentication required, Drop-In will handle it");
+      return; // Drop-In handles 3DS automatically
     }
 
-    // If we reach here, 3DS is not required or is already completed
-    processPayment(result.cardIdentifier);
-}
+    await processPayment(result.cardIdentifier);
+  }
 
-// Add this new function to handle the actual payment processing
-async function processPayment(cardIdentifier) {
+  async function processPayment(cardIdentifier){
     const payload = {
       appointment_id: appointmentId,
       order_id: orderId,
       merchantSessionKey: msk,
-      cardIdentifier: cardIdentifier
+      cardIdentifier
     };
 
-    alert('process payment');
+    debug("Sending payload to backend:", payload);
 
-    debug("Sending to backend:", payload);
-alert('calling /api/transactions');
     try {
-        const response = await fetch("/api/transactions", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                "X-CSRF-TOKEN": document.querySelector('meta[name=csrf-token]').content
-            },
-            body: JSON.stringify(payload)
-        });
-alert('called /api/transactions');
+      const response = await fetch("/api/transactions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "X-CSRF-TOKEN": document.querySelector('meta[name=csrf-token]').content
+        },
+        body: JSON.stringify(payload)
+      });
 
-        const data = await response.json().catch(() => ({}));
-        console.log(data);
-        alert('data logged from /api/transactions');
-        debug("Backend response:", response.json());
+      const data = await response.json(); // ❌ Only call json() once
+      debug("Backend response:", data);
 
-        if (!response.ok || data.error) {
-            throw new Error(data.message || "Payment failed");
-        }
+      if(!response.ok || data.error){
+        throw new Error(data.message || "Payment failed");
+      }
 
-        // Handle 3DS response if needed
-        if (data.requires3DS) {
-            debug("3DS authentication required from backend");
-            // The Drop-In will handle the 3DS flow
-            checkout.handle3DS(data.threeDSData);
-            return;
-        }
-alert('3DS authentication required');
-        // If we get here, payment was successful
-        const url = `myapp://payment-success?order_id=${encodeURIComponent(orderId)}&appointment_id=${encodeURIComponent(appointmentId)}&data=${encodeURIComponent(JSON.stringify(data || {}))}`;
-        window.location.href = url;
-        alert('myapp://payment-success?order_id');
-    } catch (error) {
-      alert('myapp://payment-failed?order_id');
-        const url = `myapp://payment-failed?order_id=${encodeURIComponent(orderId)}&appointment_id=${encodeURIComponent(appointmentId)}&data=${encodeURIComponent(JSON.stringify(error || {}))}`;
-        window.location.href = url;
-        console.error("Payment error:", error);
-        showError(error.message || "An error occurred during payment");
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Try Again";
+      if(data.requires3DS){
+        debug("3DS authentication required from backend");
+        checkout.handle3DS(data.threeDSData);
+        return;
+      }
+
+      // Payment success
+      console.log("Payment success:", data);
+      alert("Payment successful!");
+    } catch(error){
+      console.error("Payment error:", error);
+      showError(error.message || "An error occurred during payment");
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Try Again";
     }
-}
+  }
 
-// Update the submit button click handler
-// submitBtn.addEventListener("click", async () => {
-//     submitBtn.disabled = true;
-//     submitBtn.textContent = "Processing…";
-
-//     try {
-//         // This will trigger the onToken callback
-//         alert('This will trigger the onToken callback');
-//         const result = await checkout.tokenise();
-//         console.log(result);
-//         alert('This will trigger the onToken callback (Logged)');
-        
-
-//         // If 3DS is required, the Drop-In will handle it
-//         if (result.requires3DS) {
-//             debug("3DS authentication required, showing challenge...");
-//             return;
-//         }
-// alert('calling processPayment');
-//         // If no 3DS required, process payment
-//         await processPayment(result.cardIdentifier);
-
-//     } catch (error) {
-//         console.error("Tokenization error:", error);
-//         showError("Failed to process payment. Please try again.");
-//         submitBtn.disabled = false;
-//         submitBtn.textContent = "Pay Now";
-//     }
-// });
-
-submitBtn.addEventListener("click", async () => {
+  submitBtn.addEventListener("click", async () => {
     submitBtn.disabled = true;
     submitBtn.textContent = "Processing…";
 
     try {
-        // This will trigger the onToken callback
-        const result = await checkout.tokenise();
-        
-        // Check if result exists and has success property
-        if (result && result.success) {
-            // If 3DS is required, the Drop-In will handle it
-            if (result.requires3DS) {
-                debug("3DS authentication required, showing challenge...");
-                return;
-            }
-            alert('calling processPayment');
-            // If no 3DS required, process payment
-            await processPayment(result.cardIdentifier);
-        } else {
-            throw new Error("Tokenization failed");
-        }
-    } catch (error) {
-        console.error("Tokenization error:", error);
-        showError("Failed to process payment. Please try again.");
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Pay Now";
+      await checkout.tokenise();
+    } catch(error){
+      console.error("Tokenization error:", error);
+      showError("Failed to process payment. Please try again.");
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Pay Now";
     }
-});
-
-
-  // submitBtn.addEventListener("click", ()=> {
-  //   submitBtn.disabled = true;
-  //   submitBtn.textContent = "Processing…";
-  //   checkout.tokenise();
-  // });
-
+  });
 })();
 </script>
 
