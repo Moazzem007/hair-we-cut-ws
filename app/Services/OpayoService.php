@@ -182,25 +182,12 @@ class OpayoService
      * @param string $cRes
      * @return Response
      */
-    public function submit3DSecureChallenge(string $transactionId, string $cRes): Response
+    public function submit3DSecureChallenge(string $transactionId, string $cRes)
     {
-        $url = $this->baseUrl . '/transactions/' . $transactionId . '/3d-secure-challenge';
-
-        Log::info('Opayo: Submitting 3D Secure challenge', ['transactionId' => $transactionId]);
-
-        $response = $this->client()->post($url, [
+        $url = $this->baseUrl . "/transactions/{$transactionId}/3d-secure-challenge";
+        return $this->client()->post($url, [
             'cRes' => $cRes
         ]);
-
-        if (!$response->successful()) {
-            Log::error('Opayo: 3D Secure challenge failed', [
-                'transactionId' => $transactionId,
-                'status' => $response->status(),
-                'body' => $response->json()
-            ]);
-        }
-
-        return $response;
     }
 
     /**
