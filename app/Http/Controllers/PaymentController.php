@@ -145,13 +145,13 @@ public function registerTransaction(Request $r)
         "acctID" => (string)$customer->id,
         "merchantRiskIndicator" => [
             "deliveryEmailAddress" => $customer->email ?? "noreply@example.com",
-            "deliveryTimeframe" => "01",
-            "giftCardAmount" => 0,
-            "giftCardCount" => 0,
-            "preOrderDate" => "",
-            "preOrderPurchaseInd" => "01",
-            "reorderItemsInd" => "01",
-            "shipIndicator" => "01"
+            "deliveryTimeframe" => "ElectronicDelivery", // or "SameDayShipping", "OvernightShipping", "TwoDayOrMoreShipping"
+            "giftCardAmount" => "0", // Must be string, 0 for non-gift card purchases
+            "giftCardCount" => "0", // Must be string, 0 for non-gift card purchases
+            "preOrderDate" => "", // Format: YYYYMMDD, empty if not a pre-order
+            "preOrderPurchaseInd" => "MerchandiseAvailable", // or "FutureAvailability"
+            "reorderItemsInd" => "FirstTimeOrdered", // or "Reordered"
+            "shipIndicator" => "CardholderBillingAddress" // or "OtherVerifiedAddress", "DifferentToCardholderBillingAddress", etc.
         ]
     ],
 ];
