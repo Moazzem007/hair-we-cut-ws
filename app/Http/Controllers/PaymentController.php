@@ -77,34 +77,42 @@ public function registerTransaction(Request $r)
     $amountInPence = (int) round(floatval($order->amount) * 100);
 
     $payload = [
-        "transactionType" => "Payment",
-        "vendorTxCode" => $vendorTxCode,
-        "amount" => $amountInPence,
-        "currency" => "GBP",
-        "description" => "Order #{$order->id} payment",
-        "paymentMethod" => [
-            "card" => [
-                "merchantSessionKey" => $data['merchantSessionKey'],
-                "cardIdentifier" => $data['cardIdentifier'],
-                "reusable" => false
-            ]
-        ],
-        "customerFirstName" => $customer->name ?? "Customer",
-        "customerLastName" => "Name",
-        "billingAddress" => [
-            "address1" => $customer->billing_address,
-            "city" => "N/A",
-            "postalCode" => $customer->postal_code,
-            "country" => "GB"
-        ],
-        "customerEmail" => $customer->email ?? "unknown@example.com",
-        "customerPhone" => $customer->contact ?? null,
-        // ⚡ Add 3DS trigger info
-        "strongCustomerAuthentication" => [
-            "authenticationMethod" => "browser",
-            "challengeIndicator" => "noPreference"
+    "transactionType" => "Payment",
+    "vendorTxCode" => $vendorTxCode,
+    "amount" => $amountInPence,
+    "currency" => "GBP",
+    "description" => "Order #{$order->id} payment",
+    "paymentMethod" => [
+        "card" => [
+            "merchantSessionKey" => $data['merchantSessionKey'],
+            "cardIdentifier" => $data['cardIdentifier'],
+            "reusable" => false
         ]
-    ];
+    ],
+    "customerFirstName" => $customer->name ?? "Customer",
+    "customerLastName" => "Name",
+    "billingAddress" => [
+        "address1" => $customer->billing_address,
+        "city" => "N/A",
+        "postalCode" => $customer->postal_code,
+        "country" => "GB"
+    ],
+    "customerEmail" => $customer->email ?? "unknown@example.com",
+    "customerPhone" => $customer->contact ?? null,
+    "strongCustomerAuthentication" => [
+        "authenticationMethod" => "browser",
+        "challengeIndicator" => "noPreference",
+        "browserAcceptHeader" => request()->header('accept') ?? 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        "browserUserAgent" => request()->header('user-agent') ?? 'Mozilla/5.0',
+        "browserJavascriptEnabled" => true,
+        "browserLanguage" => substr(request()->header('accept-language') ?? 'en-GB', 0, 8),
+        "browserColorDepth" => 24,
+        "browserScreenHeight" => 1080,
+        "browserScreenWidth" => 1920,
+        "browserTZ" => 0
+    ]
+];
+
 
     $payment = Payment::create([
         'order_id' => $order->id,
