@@ -127,6 +127,7 @@ public function registerTransaction(Request $r)
                 "browserColorDepth" => 24,
                 "browserScreenHeight" => 1080,
                 "browserScreenWidth" => 1920,
+                "challengeWindowSize" => "Small",
                 "browserTZ" => 0
             ]
         ];
