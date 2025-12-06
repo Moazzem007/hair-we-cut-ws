@@ -116,29 +116,39 @@ class OpayoService
      * @param array $payload
      * @return Response
      */
-    public function createTransaction(array $payload): Response
-    {
-        $url = $this->baseUrl . '/transactions';
+    public function createTransaction(array $payload): \Illuminate\Http\Client\Response
+{
+    $url = $this->baseUrl . '/transactions';
 
-        Log::info('Opayo: Creating transaction', [
-            'transactionType' => $payload['transactionType'] ?? 'unknown'
+    Log::info('Opayo: Creating transaction', [
+        'transactionType' => $payload['transactionType'] ?? 'unknown',
+        'vendorTxCode'    => $payload['vendorTxCode'] ?? 'unknown'
+    ]);
+
+    $response = $this->client()->post($url, $payload);
+
+    if ($response->successful()) {
+        Log::info('Opayo: Transaction created successfully', [
+            'transactionId' => $response->json('transactionId')
         ]);
-
-        $response = $this->client()->post($url, $payload);
-
-        if ($response->successful()) {
-            Log::info('Opayo: Transaction created successfully', [
-                'transactionId' => $response->json('transactionId')
-            ]);
-        } else {
-            Log::error('Opayo: Transaction failed', [
-                'status' => $response->status(),
-                'body' => $response->json()
-            ]);
+    } else {
+        // Safely log body in case it's not JSON
+        $body = [];
+        try {
+            $body = $response->json();
+        } catch (\Exception $e) {
+            $body = ['raw' => $response->body()];
         }
 
-        return $response;
+        Log::error('Opayo: Transaction failed', [
+            'status' => $response->status(),
+            'body'   => $body
+        ]);
     }
+
+    return $response;
+}
+
 
     /**
      * Retrieve a transaction

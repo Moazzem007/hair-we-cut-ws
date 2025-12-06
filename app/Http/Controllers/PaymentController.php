@@ -54,93 +54,66 @@ class PaymentController extends Controller
 public function registerTransaction(Request $r)
 {
     Log::info('Opayo: Called registerTransaction');
+
     // Validate incoming request
     $data = $r->validate([
         'appointment_id' => 'required|integer|exists:appointments,id',
-        'order_id' => 'required|integer|exists:orders,id',
+        'order_id'       => 'required|integer|exists:orders,id',
         'merchantSessionKey' => 'required|string',
         'cardIdentifier' => 'required|string'
     ]);
 
     $order = Order::findOrFail($data['order_id']);
     $appointment = Appointment::findOrFail($data['appointment_id']);
-
-    if(!$appointment){
-        return response()->json([
-            'status' => 422,
-            'body' => ['errors' => [['description' => 'Invalid appointment id', 'property' => 'appointment_id', 'code' => 1016]]]
-        ], 422);
-    }
     $customer = Customer::findOrFail($appointment->customer_id);
-    if(!$customer){
+
+    // Validate essential customer fields
+    if (!$customer->postal_code || !$customer->billing_address) {
         return response()->json([
             'status' => 422,
-            'body' => ['errors' => [['description' => 'Invalid customer id', 'property' => 'customer_id', 'code' => 1016]]]
+            'body' => ['errors' => [['description' => !$customer->postal_code ? 'Postal code not found' : 'Billing address not found', 'code' => 1016]]]
         ], 422);
     }
 
-    if(!$customer->postal_code){
-        return response()->json([
-            'status' => 422,
-            'body' => ['errors' => [['description' => 'Postal code not found', 'property' => 'postal_code', 'code' => 1016]]]
-        ], 422);
-    }
-
-    if(!$customer->billing_address){
-        return response()->json([
-            'status' => 422,
-            'body' => ['errors' => [['description' => 'Billing address not found', 'property' => 'billing_address', 'code' => 1016]]]
-        ], 422);
-    }
-
-
-
-    // Ensure amount is numeric and positive
+    // Validate order amount
     if (!is_numeric($order->amount) || $order->amount <= 0) {
         return response()->json([
             'status' => 422,
-            'body' => ['errors' => [['description' => 'Invalid order amount', 'property' => 'amount', 'code' => 1016]]]
+            'body' => ['errors' => [['description' => 'Invalid order amount', 'code' => 1016]]]
         ], 422);
     }
 
     // Generate unique vendorTxCode
     $vendorTxCode = 'order-' . $order->id . '-' . uniqid();
-
-    /**
-     * Convert amount to pence (integer)
-     */
     $amountInPence = (int) round(floatval($order->amount) * 100);
 
+    // Prepare payload for Opayo
     $payload = [
         "transactionType" => "Payment",
         "vendorTxCode"    => $vendorTxCode,
-        "amount" => $amountInPence,
-        "currency" => "GBP",
-        "description" => "Order #{$order->id} payment",
-        "paymentMethod" => [
+        "amount"          => $amountInPence,
+        "currency"        => "GBP",
+        "description"     => "Order #{$order->id} payment",
+        "paymentMethod"   => [
             "card" => [
                 "merchantSessionKey" => $data['merchantSessionKey'],
                 "cardIdentifier"     => $data['cardIdentifier'],
                 "reusable"           => false
             ]
         ],
-        // Move customer fields to root level
         "customerFirstName" => $customer->name ?? "Customer",
         "customerLastName"  => "Name",
         "billingAddress" => [
-            "address1"    => $customer->billing_address,
-            "city"        => "N/A",
-            "postalCode"  => $customer->postal_code,
-            "country"     => "GB"
+            "address1"   => $customer->billing_address,
+            "city"       => "N/A",
+            "postalCode" => $customer->postal_code,
+            "country"    => "GB"
         ],
-        // Keep email and phone at root level as well
         "customerEmail" => $customer->email ?? "unknown@example.com",
         "customerPhone" => $customer->contact ?? null
     ];
 
-    /**
-     * Store initial payment attempt
-     */
+    // Store initial payment attempt
     $payment = Payment::create([
         'order_id'         => $order->id,
         'transaction_type' => 'Payment',
@@ -150,31 +123,37 @@ public function registerTransaction(Request $r)
         'raw_request'      => $payload
     ]);
 
-    /**
-     * Perform API call
-     */
-    Log::info('Before create transaction');
+    // Call Opayo
+    Log::info('Opayo: Before create transaction');
     $resp = $this->opayo->createTransaction($payload);
-    Log::info('After create transaction');
-    $payment->raw_response = $resp->body();
-    $payment->status = $resp->json('status') ?? $resp->status();
+    Log::info('Opayo: After create transaction');
 
-    /**
-     * Handle API responses
-     */
-    if ($resp->status() == 201) { // Payment SUCCESS
+    // Safely parse JSON
+    $body = [];
+    try {
         $body = $resp->json();
+    } catch (\Exception $e) {
+        Log::error('Opayo: Failed to parse JSON response', [
+            'body' => $resp->body(),
+            'exception' => $e->getMessage()
+        ]);
+        $body = ['error' => true, 'message' => 'Invalid response from payment gateway', 'raw' => $resp->body()];
+    }
+
+    // Update payment and order status based on response
+    $payment->raw_response = $resp->body();
+    $payment->status = $resp->status();
+
+    if ($resp->status() == 201) { // Payment SUCCESS
         $payment->transaction_id = $body['transactionId'] ?? null;
         $payment->requires_3ds = false;
 
         $order->update(['status' => 'paid']);
         $appointment->update(['payment_status' => 'paid']);
     } elseif ($resp->status() == 202) { // 3D SECURE REQUIRED
-        $body = $resp->json();
         $payment->requires_3ds = true;
         $payment->three_ds_data = $body;
-        // Order is NOT marked as paid yet
-    } else { // Other → FAILED
+    } else { // FAILED
         $order->update(['status' => 'payment_failed']);
         $appointment->update(['payment_status' => 'failed']);
     }
@@ -182,11 +161,13 @@ public function registerTransaction(Request $r)
     $appointment->save();
     $payment->save();
 
+    // Always return JSON
     return response()->json([
         'status' => $resp->status(),
-        'body'   => $resp->json()
+        'body'   => $body
     ], $resp->status());
 }
+
 
 
     // 4) Order status

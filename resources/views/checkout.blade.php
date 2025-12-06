@@ -39,132 +39,143 @@
 
 <pre id="debug"></pre>
 
-<!-- Sandbox Sage Pay Drop-In -->
+<!-- Sage Pay Sandbox Drop-In -->
 <script src="https://pi-test.sagepay.com/api/v1/js/sagepay.js"></script>
 
 <script>
 (async function () {
-  const orderId = {{ $order->id }};
-  const appointmentId = {{ $appointment->id }};
-  const msk = "{{ $merchantSessionKey }}";
+    const orderId = {{ $order->id }};
+    const appointmentId = {{ $appointment->id }};
+    const msk = "{{ $merchantSessionKey }}";
 
-  const submitBtn = document.getElementById("submit-button");
-  const errorBox = document.getElementById("opayo-errors");
-  const debugEl = document.getElementById("debug");
+    const submitBtn = document.getElementById("submit-button");
+    const errorBox = document.getElementById("opayo-errors");
+    const debugEl = document.getElementById("debug");
 
-  function debug(...args) {
-    console.log(...args);
-    debugEl.textContent += args.map(x => typeof x === "object" ? JSON.stringify(x,null,2) : x).join(" ")+"\n";
-  }
-
-  function showError(msg){
-    errorBox.style.display="block";
-    errorBox.innerHTML = "<b>Error:</b> "+msg;
-  }
-
-  if(!window.sagepayCheckout){
-    showError("Drop-in script failed to load.");
-    return;
-  }
-
-  if(!msk){
-    showError("Missing Merchant Session Key.");
-    return;
-  }
-
-  let checkout = null;
-
-  try {
-    checkout = sagepayCheckout({
-      merchantSessionKey: msk,
-      onTokenise: onToken
-    });
-    checkout.form("#sp-container");
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Pay Now";
-    debug("Drop-In mounted");
-  } catch(e) {
-    debug("Mount failed:", e);
-    showError("Payment widget failed to load.");
-    return;
-  }
-
-  async function onToken(result){
-    debug("Token callback:", result);
-
-    if(!result.success){
-      showError(result.error?.errorMessage || "Tokenisation failed");
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Pay Now";
-      return;
+    function debug(...args) {
+        console.log(...args);
+        debugEl.textContent += args.map(x => typeof x === "object" ? JSON.stringify(x,null,2) : x).join(" ") + "\n";
     }
 
-    if(result.requires3DS){
-      debug("3DS authentication required, Drop-In will handle it");
-      return; // Drop-In handles 3DS automatically
+    function showError(msg) {
+        errorBox.style.display = "block";
+        errorBox.innerHTML = "<b>Error:</b> " + msg;
     }
 
-    await processPayment(result.cardIdentifier);
-  }
-
-  async function processPayment(cardIdentifier){
-    const payload = {
-      appointment_id: appointmentId,
-      order_id: orderId,
-      merchantSessionKey: msk,
-      cardIdentifier
-    };
-
-    debug("Sending payload to backend:", payload);
-
-    try {
-      const response = await fetch("/api/transactions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "X-CSRF-TOKEN": document.querySelector('meta[name=csrf-token]').content
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json(); // ❌ Only call json() once
-      debug("Backend response:", data);
-
-      if(!response.ok || data.error){
-        throw new Error(data.message || "Payment failed");
-      }
-
-      if(data.requires3DS){
-        debug("3DS authentication required from backend");
-        checkout.handle3DS(data.threeDSData);
+    if (!window.sagepayCheckout) {
+        showError("Drop-in script failed to load.");
         return;
-      }
-
-      // Payment success
-      console.log("Payment success:", data);
-      alert("Payment successful!");
-    } catch(error){
-      console.error("Payment error:", error);
-      showError(error.message || "An error occurred during payment");
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Try Again";
     }
-  }
 
-  submitBtn.addEventListener("click", async () => {
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Processing…";
+    if (!msk) {
+        showError("Missing Merchant Session Key.");
+        return;
+    }
+
+    let checkout = null;
 
     try {
-      await checkout.tokenise();
-    } catch(error){
-      console.error("Tokenization error:", error);
-      showError("Failed to process payment. Please try again.");
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Pay Now";
+        checkout = sagepayCheckout({
+            merchantSessionKey: msk,
+            onTokenise: onToken
+        });
+        checkout.form("#sp-container");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Pay Now";
+        debug("Drop-In mounted");
+    } catch (e) {
+        debug("Mount failed:", e);
+        showError("Payment widget failed to load.");
+        return;
     }
-  });
+
+    async function onToken(result) {
+        debug("Token callback:", result);
+
+        if (!result.success) {
+            showError(result.error?.errorMessage || "Tokenisation failed");
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Pay Now";
+            return;
+        }
+
+        if (result.requires3DS) {
+            debug("3DS authentication required, Drop-In will handle it");
+            return;
+        }
+
+        await processPayment(result.cardIdentifier);
+    }
+
+    async function processPayment(cardIdentifier) {
+        const payload = {
+            appointment_id: appointmentId,
+            order_id: orderId,
+            merchantSessionKey: msk,
+            cardIdentifier
+        };
+
+        debug("Sending payload to backend:", payload);
+
+        try {
+            const response = await fetch("/api/transactions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-CSRF-TOKEN": document.querySelector('meta[name=csrf-token]').content
+                },
+                body: JSON.stringify(payload)
+            });
+
+            let data = {};
+            const contentType = response.headers.get("content-type") || "";
+            if (contentType.includes("application/json")) {
+                data = await response.json();
+            } else {
+                const text = await response.text();
+                debug("Backend returned non-JSON:", text);
+                throw new Error("Invalid response from backend.");
+            }
+
+            debug("Backend response:", data);
+
+            if (!response.ok || data.body?.error) {
+                throw new Error(data.body?.message || "Payment failed");
+            }
+
+            if (data.body?.requires_3ds) {
+                debug("3DS authentication required from backend");
+                checkout.handle3DS(data.body.three_ds_data);
+                return;
+            }
+
+            // Payment successful
+            console.log("Payment success:", data);
+            alert("Payment successful!");
+
+        } catch (error) {
+            console.error("Payment error:", error);
+            showError(error.message || "An error occurred during payment");
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Try Again";
+        }
+    }
+
+    submitBtn.addEventListener("click", async () => {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Processing…";
+
+        try {
+            await checkout.tokenise();
+        } catch (error) {
+            console.error("Tokenization error:", error);
+            showError("Failed to process payment. Please try again.");
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Pay Now";
+        }
+    });
+
 })();
 </script>
 
