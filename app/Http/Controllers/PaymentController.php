@@ -174,6 +174,7 @@ public function registerTransaction(Request $r)
         $appointment->update(['payment_status' => 'failed']);
     }
 
+    $appointment->save();
     $payment->save();
 
     return response()->json([
@@ -238,3 +239,4 @@ public function registerTransaction(Request $r)
         return view('payment-return', ['query'=>$r->all()]);
     }
 }
+
