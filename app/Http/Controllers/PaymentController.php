@@ -137,9 +137,10 @@ public function registerTransaction(Request $r)
             "threeDSReqAuthData" => "fido"
         ],
         "threeDSRequestorPriorAuthenticationInfo" => [
-            "threeDSReqPriorAuthMethod" => "01",
-            "threeDSReqPriorAuthTimestamp" => now()->subHours(1)->format('YmdHis'),
-            "threeDSReqPriorRef" => ""
+            "threeDSReqPriorAuthMethod" => "FrictionlessAuthentication", // or "ChallengeAuthentication", "AVSVerified", "OtherIssuerMethods"
+            "threeDSReqPriorAuthTimestamp" => now()->subHours(1)->format('YmdHi'), // Format: YYYYMMDDHHmm
+            "threeDSReqPriorRef" => "", // Should be empty string or a valid 36-char UUID if available
+            "threeDSReqPriorAuthData" => "" // Optional: Add if you have specific auth data
         ],
         "acctID" => (string)$customer->id,
         "merchantRiskIndicator" => [
