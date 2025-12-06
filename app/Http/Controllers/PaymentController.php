@@ -152,9 +152,9 @@ public function registerTransaction(Request $r)
     /**
      * Perform API call
      */
-    
+    Log::info('Before create transaction');
     $resp = $this->opayo->createTransaction($payload);
-    Log::info('create transaction', $resp);
+    Log::info('After create transaction', $resp);
     $payment->raw_response = $resp->body();
     $payment->status = $resp->json('status') ?? $resp->status();
 
