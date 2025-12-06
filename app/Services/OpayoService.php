@@ -2,6 +2,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class OpayoService
 {
@@ -34,7 +35,13 @@ class OpayoService
     public function createTransaction(array $payload)
     {
         $url = $this->base . '/transactions';
-        return $this->basicClient()->post($url, $payload);
+
+        // Laravel Http will send JSON when you pass an array as the 2nd param
+        $response = $this->basicClient()->post($url, $payload);
+
+        Log::debug('Opayo createTransaction', ['url'=>$url, 'status'=>$response->status(), 'body'=>$response->body()]);
+
+        return $response;
     }
 
     // Retrieve a transaction
