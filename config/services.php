@@ -30,4 +30,11 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'opayo' => [
+        'base_url' => env('OPAYO_BASE_URL', 'https://sandbox.opayo.eu.elavon.com/api/v1'),
+        'integration_key' => env('OPAYO_INTEGRATION_KEY'),
+        'integration_password' => env('OPAYO_INTEGRATION_PASSWORD'),
+        'vendor_name' => env('OPAYO_VENDOR_NAME', 'sandbox'),
+    ],
+
 ];

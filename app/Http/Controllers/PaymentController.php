@@ -38,7 +38,8 @@ class PaymentController extends Controller
     public function checkoutPage(Order $order, Appointment $appointment)
     {
         // create merchantSessionKey server-side
-        $resp = $this->opayo->createMerchantSessionKey("paymentsavetest");
+        $vendorName = config('services.opayo.vendor_name', 'sandbox');
+        $resp = $this->opayo->createMerchantSessionKey($vendorName);
         if ($resp->failed()) {
             // \Log::error('MSK failed', ['status'=>$resp->status(),'body'=>$resp->body()]);
             abort(500, 'Payment provider error');
