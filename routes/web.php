@@ -324,3 +324,5 @@ Route::get('outsidemarket', [outsidemarketplace::class,'marketpage'])->name('out
 
 Route::get('/checkout/{order}/{appointment}', [PaymentController::class,'checkoutPage'])->name('checkout.page');
 Route::post('/payment-return', [PaymentController::class,'paymentReturn']); // optional callback/return page
+Route::post('/3ds-notification', [PaymentController::class, 'handle3DSNotification'])
+     ->name('handle3DSNotification');
