@@ -53,6 +53,7 @@ class PaymentController extends Controller
     // 3) Register transaction: backend receives cardIdentifier from drop-in
 public function registerTransaction(Request $r)
 {
+    Log::info('Opayo: Called registerTransaction');
     // Validate incoming request
     $data = $r->validate([
         'appointment_id' => 'required|integer|exists:appointments,id',
@@ -154,7 +155,7 @@ public function registerTransaction(Request $r)
      */
     Log::info('Before create transaction');
     $resp = $this->opayo->createTransaction($payload);
-    Log::info('After create transaction', $resp);
+    Log::info('After create transaction');
     $payment->raw_response = $resp->body();
     $payment->status = $resp->json('status') ?? $resp->status();
 
