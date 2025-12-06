@@ -163,8 +163,11 @@ async function processPayment(cardIdentifier) {
         }
 
         // If we get here, payment was successful
-        window.location.href = `/payment/success?order_id=${orderId}`;
+        const url = `myapp://payment-success?order_id=${encodeURIComponent(orderId)}&appointment_id=${encodeURIComponent(appointmentId)}&data=${encodeURIComponent(JSON.stringify(data || {}))}`;
+        window.location.href = url;
     } catch (error) {
+        const url = `myapp://payment-failed?order_id=${encodeURIComponent(orderId)}&appointment_id=${encodeURIComponent(appointmentId)}&data=${encodeURIComponent(JSON.stringify(error || {}))}`;
+        window.location.href = url;
         console.error("Payment error:", error);
         showError(error.message || "An error occurred during payment");
         submitBtn.disabled = false;
@@ -176,17 +179,17 @@ async function processPayment(cardIdentifier) {
 submitBtn.addEventListener("click", async () => {
     submitBtn.disabled = true;
     submitBtn.textContent = "Processing…";
-    
+
     try {
         // This will trigger the onToken callback
         const result = await checkout.tokenise();
-        
+
         // If 3DS is required, the Drop-In will handle it
         if (result.requires3DS) {
             debug("3DS authentication required, showing challenge...");
             return;
         }
-        
+
         // If no 3DS required, process payment
         await processPayment(result.cardIdentifier);
     } catch (error) {

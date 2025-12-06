@@ -130,7 +130,7 @@ class AppointmentController extends Controller
             );
 
             // $slot = BarberTimeSlot::where('barber_id',$request->barber_id)->where('id', $request->slote)->where('status', 'Avalible')->first();
-           
+
             // if(!$slot){
             //     return response()->json([
             //         'success' => false,
@@ -142,7 +142,7 @@ class AppointmentController extends Controller
             $result = Appointment::create($data);
 
             // $slot->status = 'Unavailable';
-            
+
             // $slot->update();
 
             $usermaildata = array(
@@ -175,7 +175,7 @@ class AppointmentController extends Controller
 
                 $barber = Barber::find($request->barber_id);
                 $user = User::find($barber->barber_of);
-                
+
                 if ($user->device_token != null) {
 
                     // $this->fcmController->sendNotification(new \Illuminate\Http\Request([
