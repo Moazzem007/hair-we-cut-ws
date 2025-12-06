@@ -132,25 +132,26 @@ public function registerTransaction(Request $r)
         'raw_request' => $payload
     ]);
 
-    $resp = null; // <-- initialize here to avoid undefined variable
+    $resp = null;
+    $body = [];
 
     try {
         $resp = $this->opayo->createTransaction($payload);
         $body = $resp->json();
     } catch (\Exception $e) {
         Log::error('Opayo transaction failed', ['exception' => $e->getMessage()]);
-        $body = ['error' => true, 'message' => $e->getMessage(), 'raw' => method_exists($resp,'body') ? $resp->body() : null];
+        $body = ['error' => true, 'message' => $e->getMessage(), 'raw' => $resp ? $resp->body() : null];
     }
 
-    $payment->raw_response = method_exists($resp,'body') ? $resp->body() : '';
-    $payment->status = $resp->status() ?? 500;
+    $payment->raw_response = $resp ? $resp->body() : '';
+    $payment->status = $resp ? $resp->status() : 500;
 
     if (isset($body['3DSecure']) && $body['3DSecure']['status'] === 'NotChecked') {
         $payment->requires_3ds = true;
         $payment->three_ds_data = $body;
         $order->update(['status' => '3ds_required']);
         $appointment->update(['payment_status' => '3ds_required']);
-    } elseif ($body['status'] === 'Ok' || $body['3DSecure']['status'] === 'Authenticated') {
+    } elseif (($body['status'] ?? '') === 'Ok' || ($body['3DSecure']['status'] ?? '') === 'Authenticated') {
         $payment->transaction_id = $body['transactionId'] ?? null;
         $payment->requires_3ds = false;
         $order->update(['status' => 'paid']);
@@ -164,10 +165,11 @@ public function registerTransaction(Request $r)
     $payment->save();
 
     return response()->json([
-        'status' => $resp->status() ?? 500,
+        'status' => $resp ? $resp->status() : 500,
         'body' => $body
-    ], $resp->status() ?? 500);
+    ], $resp ? $resp->status() : 500);
 }
+
 
 
 
