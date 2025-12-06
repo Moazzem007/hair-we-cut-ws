@@ -118,7 +118,7 @@
         debug("Sending payload to backend:", payload);
 
         try {
-            const response = await fetch("/api/transactions", {
+            const response = await fetch("{{ url('/api/transactions') }}", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

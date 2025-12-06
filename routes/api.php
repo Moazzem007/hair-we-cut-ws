@@ -376,4 +376,5 @@ Route::post('sendNotification', [FcmController::class, 'sendNotification']);
 Route::get('/payment-order/{order}/status', [PaymentController::class, 'orderStatus']);
 Route::post('/payment-order/{order}/refund', [PaymentController::class, 'refund']);
 
-Route::post('transactions', [PaymentController::class, 'registerTransaction']);
+// Route::post('transactions', [PaymentController::class, 'registerTransaction']);
+Route::middleware('api')->post('/transactions', [PaymentController::class, 'registerTransaction']);
