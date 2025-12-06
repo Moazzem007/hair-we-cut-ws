@@ -76,6 +76,9 @@ public function registerTransaction(Request $r)
     $vendorTxCode = 'order-' . $order->id . '-' . uniqid();
     $amountInPence = (int) round(floatval($order->amount) * 100);
 
+    $acceptLang = request()->header('accept-language') ?? 'en';
+$browserLanguage = explode(',', $acceptLang)[0]; // "en-GB" or "en"
+
     $payload = [
     "transactionType" => "Payment",
     "vendorTxCode" => $vendorTxCode,
@@ -105,12 +108,13 @@ public function registerTransaction(Request $r)
         "browserAcceptHeader" => request()->header('accept') ?? 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         "browserUserAgent" => request()->header('user-agent') ?? 'Mozilla/5.0',
         "browserJavascriptEnabled" => true,
-        "browserLanguage" => substr(request()->header('accept-language') ?? 'en-GB', 0, 8),
+        "browserLanguage" => $browserLanguage,
         "browserColorDepth" => 24,
         "browserScreenHeight" => 1080,
         "browserScreenWidth" => 1920,
         "browserTZ" => 0
     ]
+
 ];
 
 
