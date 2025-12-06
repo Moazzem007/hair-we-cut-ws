@@ -99,11 +99,7 @@
             return;
         }
 
-        if (result.requires3DS) {
-            debug("3DS authentication required, Drop-In will handle it automatically");
-            return;
-        }
-
+        // Trigger backend payment processing
         await processPayment(result.cardIdentifier);
     }
 
@@ -128,8 +124,9 @@
                 body: JSON.stringify(payload)
             });
 
-            let data = {};
             const contentType = response.headers.get("content-type") || "";
+            let data = {};
+
             if (contentType.includes("application/json")) {
                 data = await response.json();
             } else {
@@ -140,16 +137,15 @@
 
             debug("Backend response:", data);
 
-            // Check if 3DS authentication is required
-            if (data.body?.requires_3ds) {
-                debug("3DS authentication required from backend, invoking Drop-In 3DS flow");
+            // Handle 3DS challenge
+            if (data.body?.requires_3ds && data.body?.three_ds_data) {
+                debug("3DS authentication required, triggering Drop-In 3DS...");
                 await checkout.handle3DS(data.body.three_ds_data);
                 return;
             }
 
-            // Check for failure status
-            if (data.body?.status === "Rejected") {
-                throw new Error(data.body?.statusDetail || "Payment rejected by gateway");
+            if (data.status == 201 && data.body?.status === "Rejected") {
+                throw new Error(data.body.statusDetail || "Payment rejected");
             }
 
             // Payment successful

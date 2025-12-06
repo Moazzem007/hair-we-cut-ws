@@ -57,7 +57,7 @@ public function registerTransaction(Request $r)
 
     $data = $r->validate([
         'appointment_id' => 'required|integer|exists:appointments,id',
-        'order_id'       => 'required|integer|exists:orders,id',
+        'order_id' => 'required|integer|exists:orders,id',
         'merchantSessionKey' => 'required|string',
         'cardIdentifier' => 'required|string'
     ]);
@@ -73,52 +73,51 @@ public function registerTransaction(Request $r)
         ], 422);
     }
 
-    if (!is_numeric($order->amount) || $order->amount <= 0) {
-        return response()->json([
-            'status' => 422,
-            'body' => ['errors' => [['description' => 'Invalid order amount', 'code' => 1016]]]
-        ], 422);
-    }
-
     $vendorTxCode = 'order-' . $order->id . '-' . uniqid();
     $amountInPence = (int) round(floatval($order->amount) * 100);
 
     $payload = [
         "transactionType" => "Payment",
-        "vendorTxCode"    => $vendorTxCode,
-        "amount"          => $amountInPence,
-        "currency"        => "GBP",
-        "description"     => "Order #{$order->id} payment",
-        "paymentMethod"   => [
+        "vendorTxCode" => $vendorTxCode,
+        "amount" => $amountInPence,
+        "currency" => "GBP",
+        "description" => "Order #{$order->id} payment",
+        "paymentMethod" => [
             "card" => [
                 "merchantSessionKey" => $data['merchantSessionKey'],
-                "cardIdentifier"     => $data['cardIdentifier'],
-                "reusable"           => false
+                "cardIdentifier" => $data['cardIdentifier'],
+                "reusable" => false
             ]
         ],
         "customerFirstName" => $customer->name ?? "Customer",
-        "customerLastName"  => "Name",
+        "customerLastName" => "Name",
         "billingAddress" => [
-            "address1"   => $customer->billing_address,
-            "city"       => "N/A",
+            "address1" => $customer->billing_address,
+            "city" => "N/A",
             "postalCode" => $customer->postal_code,
-            "country"    => "GB"
+            "country" => "GB"
         ],
         "customerEmail" => $customer->email ?? "unknown@example.com",
-        "customerPhone" => $customer->contact ?? null
+        "customerPhone" => $customer->contact ?? null,
+        // ⚡ Add 3DS trigger info
+        "strongCustomerAuthentication" => [
+            "authenticationMethod" => "browser",
+            "challengeIndicator" => "noPreference"
+        ]
     ];
 
     $payment = Payment::create([
-        'order_id'         => $order->id,
+        'order_id' => $order->id,
         'transaction_type' => 'Payment',
-        'vendor_tx_code'   => $vendorTxCode,
-        'amount'           => $order->amount,
-        'currency'         => $order->currency ?? "GBP",
-        'raw_request'      => $payload
+        'vendor_tx_code' => $vendorTxCode,
+        'amount' => $order->amount,
+        'currency' => $order->currency ?? "GBP",
+        'raw_request' => $payload
     ]);
 
     $resp = $this->opayo->createTransaction($payload);
 
+    $body = [];
     try {
         $body = $resp->json();
     } catch (\Exception $e) {
@@ -130,23 +129,21 @@ public function registerTransaction(Request $r)
     }
 
     $payment->raw_response = $resp->body();
+    $payment->status = $resp->status();
 
-    // Handle 3DS and status correctly
+    // ⚡ Handle 3DS
     $requires3DS = false;
-    if (isset($body['3DSecure']) && $body['3DSecure']['status'] !== 'Authenticated') {
-        $requires3DS = true;
-        $payment->requires_3ds = true;
-        $payment->three_ds_data = $body; // Send full body to Drop-In
-    } else {
-        $payment->requires_3ds = false;
-    }
+    $threeDSData = null;
 
-    if ($body['status'] === 'Rejected') {
-        $order->update(['status' => 'payment_failed']);
-        $appointment->update(['payment_status' => 'failed']);
-    } elseif (!$requires3DS) {
+    if ($body['3DSecure']['status'] ?? null === 'NotChecked' || $body['status'] === 'Rejected') {
+        $requires3DS = true;
+        $threeDSData = $body;
+    } elseif ($resp->status() == 201 && ($body['status'] ?? '') === 'Ok') {
         $order->update(['status' => 'paid']);
         $appointment->update(['payment_status' => 'paid']);
+    } else {
+        $order->update(['status' => 'payment_failed']);
+        $appointment->update(['payment_status' => 'failed']);
     }
 
     $appointment->save();
@@ -154,9 +151,13 @@ public function registerTransaction(Request $r)
 
     return response()->json([
         'status' => $resp->status(),
-        'body' => array_merge($body, ['requires_3ds' => $requires3DS])
+        'body' => array_merge($body, [
+            'requires_3ds' => $requires3DS,
+            'three_ds_data' => $threeDSData
+        ])
     ], $resp->status());
 }
+
 
 
 
