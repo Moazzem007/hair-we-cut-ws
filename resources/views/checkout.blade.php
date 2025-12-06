@@ -99,7 +99,6 @@
             return;
         }
 
-        // Trigger backend payment processing
         await processPayment(result.cardIdentifier);
     }
 
@@ -124,33 +123,24 @@
                 body: JSON.stringify(payload)
             });
 
-            const contentType = response.headers.get("content-type") || "";
-            let data = {};
-
-            if (contentType.includes("application/json")) {
-                data = await response.json();
-            } else {
-                const text = await response.text();
-                debug("Backend returned non-JSON:", text);
-                throw new Error("Invalid response from backend.");
-            }
-
+            const data = await response.json();
             debug("Backend response:", data);
 
-            // Handle 3DS challenge
             if (data.body?.requires_3ds && data.body?.three_ds_data) {
-                debug("3DS authentication required, triggering Drop-In 3DS...");
-                await checkout.handle3DS(data.body.three_ds_data);
+                debug("3DS authentication required, invoking Drop-In 3DS handler");
+                await checkout.handle3DS(data.body.three_ds_data); // triggers browser challenge
+                debug("3DS challenge complete, retrying transaction...");
+                await processPayment(cardIdentifier); // re-call after challenge
                 return;
             }
 
-            if (data.status == 201 && data.body?.status === "Rejected") {
-                throw new Error(data.body.statusDetail || "Payment rejected");
+            if (data.status >= 400 || data.body?.status === "Rejected") {
+                throw new Error(data.body?.statusDetail || "Payment failed");
             }
 
             // Payment successful
-            console.log("Payment success:", data);
             alert("Payment successful!");
+            debug("Payment success:", data);
 
         } catch (error) {
             console.error("Payment error:", error);

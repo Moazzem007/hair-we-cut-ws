@@ -57,7 +57,7 @@ public function registerTransaction(Request $r)
 
     $data = $r->validate([
         'appointment_id' => 'required|integer|exists:appointments,id',
-        'order_id' => 'required|integer|exists:orders,id',
+        'order_id'       => 'required|integer|exists:orders,id',
         'merchantSessionKey' => 'required|string',
         'cardIdentifier' => 'required|string'
     ]);
@@ -73,50 +73,56 @@ public function registerTransaction(Request $r)
         ], 422);
     }
 
+    if (!is_numeric($order->amount) || $order->amount <= 0) {
+        return response()->json([
+            'status' => 422,
+            'body' => ['errors' => [['description' => 'Invalid order amount', 'code' => 1016]]]
+        ], 422);
+    }
+
     $vendorTxCode = 'order-' . $order->id . '-' . uniqid();
     $amountInPence = (int) round(floatval($order->amount) * 100);
 
-    $acceptLang = request()->header('accept-language') ?? 'en';
-$browserLanguage = explode(',', $acceptLang)[0]; // "en-GB" or "en"
+    // Proper browser language & headers
+    $acceptLang = $r->header('accept-language') ?? 'en';
+    $browserLanguage = explode(',', $acceptLang)[0];
 
     $payload = [
-    "transactionType" => "Payment",
-    "vendorTxCode" => $vendorTxCode,
-    "amount" => $amountInPence,
-    "currency" => "GBP",
-    "description" => "Order #{$order->id} payment",
-    "paymentMethod" => [
-        "card" => [
-            "merchantSessionKey" => $data['merchantSessionKey'],
-            "cardIdentifier" => $data['cardIdentifier'],
-            "reusable" => false
+        "transactionType" => "Payment",
+        "vendorTxCode"    => $vendorTxCode,
+        "amount"          => $amountInPence,
+        "currency"        => "GBP",
+        "description"     => "Order #{$order->id} payment",
+        "paymentMethod"   => [
+            "card" => [
+                "merchantSessionKey" => $data['merchantSessionKey'],
+                "cardIdentifier"     => $data['cardIdentifier'],
+                "reusable"           => false
+            ]
+        ],
+        "customerFirstName" => $customer->name ?? "Customer",
+        "customerLastName"  => "Name",
+        "billingAddress" => [
+            "address1"   => $customer->billing_address,
+            "city"       => "N/A",
+            "postalCode" => $customer->postal_code,
+            "country"    => "GB"
+        ],
+        "customerEmail" => $customer->email ?? "unknown@example.com",
+        "customerPhone" => $customer->contact ?? null,
+        "strongCustomerAuthentication" => [
+            "authenticationMethod" => "browser",
+            "challengeIndicator" => "noPreference",
+            "browserAcceptHeader" => $r->header('accept') ?? 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            "browserUserAgent" => $r->header('user-agent') ?? 'Mozilla/5.0',
+            "browserJavascriptEnabled" => true,
+            "browserLanguage" => $browserLanguage,
+            "browserColorDepth" => 24,
+            "browserScreenHeight" => 1080,
+            "browserScreenWidth" => 1920,
+            "browserTZ" => 0
         ]
-    ],
-    "customerFirstName" => $customer->name ?? "Customer",
-    "customerLastName" => "Name",
-    "billingAddress" => [
-        "address1" => $customer->billing_address,
-        "city" => "N/A",
-        "postalCode" => $customer->postal_code,
-        "country" => "GB"
-    ],
-    "customerEmail" => $customer->email ?? "unknown@example.com",
-    "customerPhone" => $customer->contact ?? null,
-    "strongCustomerAuthentication" => [
-        "authenticationMethod" => "browser",
-        "challengeIndicator" => "noPreference",
-        "browserAcceptHeader" => request()->header('accept') ?? 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        "browserUserAgent" => request()->header('user-agent') ?? 'Mozilla/5.0',
-        "browserJavascriptEnabled" => true,
-        "browserLanguage" => $browserLanguage,
-        "browserColorDepth" => 24,
-        "browserScreenHeight" => 1080,
-        "browserScreenWidth" => 1920,
-        "browserTZ" => 0
-    ]
-
-];
-
+    ];
 
     $payment = Payment::create([
         'order_id' => $order->id,
@@ -127,30 +133,24 @@ $browserLanguage = explode(',', $acceptLang)[0]; // "en-GB" or "en"
         'raw_request' => $payload
     ]);
 
-    $resp = $this->opayo->createTransaction($payload);
-
-    $body = [];
     try {
+        $resp = $this->opayo->createTransaction($payload);
         $body = $resp->json();
     } catch (\Exception $e) {
-        Log::error('Opayo: Failed to parse JSON response', [
-            'body' => $resp->body(),
-            'exception' => $e->getMessage()
-        ]);
-        $body = ['error' => true, 'message' => 'Invalid response from payment gateway', 'raw' => $resp->body()];
+        $body = ['error' => true, 'message' => $e->getMessage(), 'raw' => $resp->body() ?? ''];
     }
 
-    $payment->raw_response = $resp->body();
-    $payment->status = $resp->status();
+    $payment->raw_response = $resp->body() ?? '';
+    $payment->status = $resp->status() ?? 500;
 
-    // ⚡ Handle 3DS
-    $requires3DS = false;
-    $threeDSData = null;
-
-    if ($body['3DSecure']['status'] ?? null === 'NotChecked' || $body['status'] === 'Rejected') {
-        $requires3DS = true;
-        $threeDSData = $body;
-    } elseif ($resp->status() == 201 && ($body['status'] ?? '') === 'Ok') {
+    if (isset($body['3DSecure']) && $body['3DSecure']['status'] === 'NotChecked') {
+        $payment->requires_3ds = true;
+        $payment->three_ds_data = $body;
+        $order->update(['status' => '3ds_required']);
+        $appointment->update(['payment_status' => '3ds_required']);
+    } elseif ($body['status'] === 'Ok' || $body['status'] === 'Authenticated') {
+        $payment->transaction_id = $body['transactionId'] ?? null;
+        $payment->requires_3ds = false;
         $order->update(['status' => 'paid']);
         $appointment->update(['payment_status' => 'paid']);
     } else {
@@ -162,13 +162,11 @@ $browserLanguage = explode(',', $acceptLang)[0]; // "en-GB" or "en"
     $payment->save();
 
     return response()->json([
-        'status' => $resp->status(),
-        'body' => array_merge($body, [
-            'requires_3ds' => $requires3DS,
-            'three_ds_data' => $threeDSData
-        ])
-    ], $resp->status());
+        'status' => $resp->status() ?? 500,
+        'body' => $body
+    ], $resp->status() ?? 500);
 }
+
 
 
 
