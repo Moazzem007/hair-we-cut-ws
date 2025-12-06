@@ -149,7 +149,7 @@ async function processPayment(cardIdentifier) {
         });
 
         const data = await response.json().catch(() => ({}));
-        debug("Backend response:", data);
+        debug("Backend response:", response.json());
 
         if (!response.ok || data.error) {
             throw new Error(data.message || "Payment failed");
