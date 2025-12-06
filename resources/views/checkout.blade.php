@@ -89,7 +89,6 @@
         return;
     }
 
-    // Handles Drop-In tokenisation callback (including 3DS)
     async function onToken(result) {
         debug("Token callback:", result);
 
@@ -102,15 +101,12 @@
 
         if (result.requires3DS) {
             debug("3DS authentication required, Drop-In will handle it automatically");
-            // Drop-In handles the 3DS challenge UI
             return;
         }
 
-        // If 3DS not required or already completed
         await processPayment(result.cardIdentifier);
     }
 
-    // Sends token to backend to process payment
     async function processPayment(cardIdentifier) {
         const payload = {
             appointment_id: appointmentId,
@@ -144,40 +140,30 @@
 
             debug("Backend response:", data);
 
-            // Backend indicates 3DS required
-            if (data.body?.requires_3ds && data.body?.three_ds_data) {
-                debug("3DS authentication required from backend, triggering Drop-In handle3DS...");
+            // Check if 3DS authentication is required
+            if (data.body?.requires_3ds) {
+                debug("3DS authentication required from backend, invoking Drop-In 3DS flow");
                 await checkout.handle3DS(data.body.three_ds_data);
                 return;
             }
 
-            // Payment rejected
-            if (data.body?.status === "Rejected" || data.body?.statusCode) {
-                const detail = data.body?.statusDetail || "Payment failed";
-                showError(`Payment rejected: ${detail}`);
-                submitBtn.disabled = false;
-                submitBtn.textContent = "Try Again";
-                return;
+            // Check for failure status
+            if (data.body?.status === "Rejected") {
+                throw new Error(data.body?.statusDetail || "Payment rejected by gateway");
             }
 
             // Payment successful
             console.log("Payment success:", data);
             alert("Payment successful!");
-            const successUrl = `myapp://payment-success?order_id=${encodeURIComponent(orderId)}&appointment_id=${encodeURIComponent(appointmentId)}&data=${encodeURIComponent(JSON.stringify(data || {}))}`;
-            window.location.href = successUrl;
 
         } catch (error) {
             console.error("Payment error:", error);
             showError(error.message || "An error occurred during payment");
             submitBtn.disabled = false;
             submitBtn.textContent = "Try Again";
-
-            const failUrl = `myapp://payment-failed?order_id=${encodeURIComponent(orderId)}&appointment_id=${encodeURIComponent(appointmentId)}&data=${encodeURIComponent(JSON.stringify(error || {}))}`;
-            window.location.href = failUrl;
         }
     }
 
-    // Trigger Drop-In tokenisation on button click
     submitBtn.addEventListener("click", async () => {
         submitBtn.disabled = true;
         submitBtn.textContent = "Processing…";

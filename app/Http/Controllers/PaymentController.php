@@ -55,7 +55,6 @@ public function registerTransaction(Request $r)
 {
     Log::info('Opayo: Called registerTransaction');
 
-    // Validate incoming request
     $data = $r->validate([
         'appointment_id' => 'required|integer|exists:appointments,id',
         'order_id'       => 'required|integer|exists:orders,id',
@@ -67,7 +66,6 @@ public function registerTransaction(Request $r)
     $appointment = Appointment::findOrFail($data['appointment_id']);
     $customer = Customer::findOrFail($appointment->customer_id);
 
-    // Validate essential customer fields
     if (!$customer->postal_code || !$customer->billing_address) {
         return response()->json([
             'status' => 422,
@@ -75,7 +73,6 @@ public function registerTransaction(Request $r)
         ], 422);
     }
 
-    // Validate order amount
     if (!is_numeric($order->amount) || $order->amount <= 0) {
         return response()->json([
             'status' => 422,
@@ -83,11 +80,9 @@ public function registerTransaction(Request $r)
         ], 422);
     }
 
-    // Generate unique vendorTxCode
     $vendorTxCode = 'order-' . $order->id . '-' . uniqid();
     $amountInPence = (int) round(floatval($order->amount) * 100);
 
-    // Prepare payload for Opayo
     $payload = [
         "transactionType" => "Payment",
         "vendorTxCode"    => $vendorTxCode,
@@ -113,7 +108,6 @@ public function registerTransaction(Request $r)
         "customerPhone" => $customer->contact ?? null
     ];
 
-    // Store initial payment attempt
     $payment = Payment::create([
         'order_id'         => $order->id,
         'transaction_type' => 'Payment',
@@ -123,13 +117,8 @@ public function registerTransaction(Request $r)
         'raw_request'      => $payload
     ]);
 
-    // Call Opayo
-    Log::info('Opayo: Before create transaction');
     $resp = $this->opayo->createTransaction($payload);
-    Log::info('Opayo: After create transaction');
 
-    // Safely parse JSON
-    $body = [];
     try {
         $body = $resp->json();
     } catch (\Exception $e) {
@@ -140,33 +129,35 @@ public function registerTransaction(Request $r)
         $body = ['error' => true, 'message' => 'Invalid response from payment gateway', 'raw' => $resp->body()];
     }
 
-    // Update payment and order status based on response
     $payment->raw_response = $resp->body();
-    $payment->status = $resp->status();
 
-    if ($resp->status() == 201) { // Payment SUCCESS
-        $payment->transaction_id = $body['transactionId'] ?? null;
-        $payment->requires_3ds = false;
-
-        $order->update(['status' => 'paid']);
-        $appointment->update(['payment_status' => 'paid']);
-    } elseif ($resp->status() == 202) { // 3D SECURE REQUIRED
+    // Handle 3DS and status correctly
+    $requires3DS = false;
+    if (isset($body['3DSecure']) && $body['3DSecure']['status'] !== 'Authenticated') {
+        $requires3DS = true;
         $payment->requires_3ds = true;
-        $payment->three_ds_data = $body;
-    } else { // FAILED
+        $payment->three_ds_data = $body; // Send full body to Drop-In
+    } else {
+        $payment->requires_3ds = false;
+    }
+
+    if ($body['status'] === 'Rejected') {
         $order->update(['status' => 'payment_failed']);
         $appointment->update(['payment_status' => 'failed']);
+    } elseif (!$requires3DS) {
+        $order->update(['status' => 'paid']);
+        $appointment->update(['payment_status' => 'paid']);
     }
 
     $appointment->save();
     $payment->save();
 
-    // Always return JSON
     return response()->json([
         'status' => $resp->status(),
-        'body'   => $body
+        'body' => array_merge($body, ['requires_3ds' => $requires3DS])
     ], $resp->status());
 }
+
 
 
 
