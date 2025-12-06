@@ -62,6 +62,7 @@ public function registerTransaction(Request $r)
 
     $order = Order::findOrFail($data['order_id']);
     $appointment = Appointment::findOrFail($data['appointment_id']);
+
     if(!$appointment){
         return response()->json([
             'status' => 422,
@@ -150,6 +151,7 @@ public function registerTransaction(Request $r)
     /**
      * Perform API call
      */
+    return response()->json("hello");
     $resp = $this->opayo->createTransaction($payload);
 
     $payment->raw_response = $resp->body();
