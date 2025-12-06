@@ -37,7 +37,7 @@
   <div id="opayo-errors" class="opayo-error"></div>
 </div>
 
-<pre id="debug"></pre>
+<pre id="debug" style="display: none"></pre>
 
 <!-- ✅ Correct Sandbox Script -->
 <script src="https://pi-test.sagepay.com/api/v1/js/sagepay.js"></script>
