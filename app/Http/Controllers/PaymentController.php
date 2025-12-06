@@ -53,6 +53,7 @@ class PaymentController extends Controller
     // 3) Register transaction: backend receives cardIdentifier from drop-in
 public function registerTransaction(Request $r)
 {
+    return response()->json("hello");
     // Validate incoming request
     $data = $r->validate([
         'appointment_id' => 'required|integer|exists:appointments,id',

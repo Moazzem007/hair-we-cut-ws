@@ -147,7 +147,8 @@ async function processPayment(cardIdentifier) {
             },
             body: JSON.stringify(payload)
         });
-console.log(data);
+alert(data);
+return;
 
         const data = await response.json().catch(() => ({}));
         debug("Backend response:", response.json());
