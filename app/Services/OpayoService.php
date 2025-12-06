@@ -12,9 +12,12 @@ class OpayoService
 
     public function __construct()
     {
-        $this->base = env('OPAYO_BASE');
-        $this->key = env('OPAYO_INTEGRATION_KEY');
-        $this->pass = env('OPAYO_INTEGRATION_PASSWORD');
+        $this->base = env('OPAYO_BASE') ?? 'https://sandbox.opayo.eu.elavon.com/api/v1';
+        $this->key = env('OPAYO_INTEGRATION_KEY') ?? 'fxa0IVHpPZQJmwXv1junS4onhQUzCBAmbsQgwBiTpif9K9O3U8';
+        $this->pass = env('OPAYO_INTEGRATION_PASSWORD') ?? '99qEGYYMxDZJXlKzWwY8tW2LafsMxY0pLI1CtEsXsaXAb6RpCgJQ7uWzjwfPwcHxR';
+        // $this->base = env('OPAYO_BASE');
+        // $this->key = env('OPAYO_INTEGRATION_KEY');
+        // $this->pass = env('OPAYO_INTEGRATION_PASSWORD');
     }
 
     protected function basicClient()
