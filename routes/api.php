@@ -374,7 +374,6 @@ Route::post('sendNotification', [FcmController::class, 'sendNotification']);
 // Payment routes
 
 Route::get('/payment-order/{order}/status', [PaymentController::class, 'orderStatus']);
-// Route::post('/transactions', [PaymentController::class, 'registerTransaction']); // receives cardIdentifier from drop-in
 Route::post('/payment-order/{order}/refund', [PaymentController::class, 'refund']);
 
 Route::post('transactions', [PaymentController::class, 'registerTransaction']);

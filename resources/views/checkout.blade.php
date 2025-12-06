@@ -57,6 +57,7 @@
   const debugEl = document.getElementById("debug");
 
   function debug(...a){
+    return;
     console.log(...a);
     debugEl.textContent += a.map(x => typeof x === "object" ? JSON.stringify(x,null,2) : x).join(" ")+"\n";
   }
@@ -135,8 +136,10 @@ async function processPayment(cardIdentifier) {
       cardIdentifier: cardIdentifier
     };
 
-    debug("Sending to backend:", payload);
+    alert('process payment');
 
+    debug("Sending to backend:", payload);
+alert('calling /api/transactions');
     try {
         const response = await fetch("/api/transactions", {
             method: "POST",
@@ -147,10 +150,11 @@ async function processPayment(cardIdentifier) {
             },
             body: JSON.stringify(payload)
         });
-alert(data);
-return;
+alert('called /api/transactions');
 
         const data = await response.json().catch(() => ({}));
+        console.log(data);
+        alert('data logged from /api/transactions');
         debug("Backend response:", response.json());
 
         if (!response.ok || data.error) {
@@ -164,11 +168,13 @@ return;
             checkout.handle3DS(data.threeDSData);
             return;
         }
-
+alert('3DS authentication required');
         // If we get here, payment was successful
         const url = `myapp://payment-success?order_id=${encodeURIComponent(orderId)}&appointment_id=${encodeURIComponent(appointmentId)}&data=${encodeURIComponent(JSON.stringify(data || {}))}`;
         window.location.href = url;
+        alert('myapp://payment-success?order_id');
     } catch (error) {
+      alert('myapp://payment-failed?order_id');
         const url = `myapp://payment-failed?order_id=${encodeURIComponent(orderId)}&appointment_id=${encodeURIComponent(appointmentId)}&data=${encodeURIComponent(JSON.stringify(error || {}))}`;
         window.location.href = url;
         console.error("Payment error:", error);
@@ -185,16 +191,21 @@ submitBtn.addEventListener("click", async () => {
 
     try {
         // This will trigger the onToken callback
+        alert('This will trigger the onToken callback');
         const result = await checkout.tokenise();
+        console.log(result);
+        alert('This will trigger the onToken callback (Logged)');
+        
 
         // If 3DS is required, the Drop-In will handle it
         if (result.requires3DS) {
             debug("3DS authentication required, showing challenge...");
             return;
         }
-
+alert('calling processPayment');
         // If no 3DS required, process payment
         await processPayment(result.cardIdentifier);
+
     } catch (error) {
         console.error("Tokenization error:", error);
         showError("Failed to process payment. Please try again.");
