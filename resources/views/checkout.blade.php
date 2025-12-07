@@ -103,31 +103,62 @@
       const data = await response.json();
       debug("Backend response:", data);
 
-      if(data.body?.requires_3ds && data.body?.three_ds_data){
-        debug("3DS authentication required, invoking Drop-In 3DS handler");
-        await checkout.handle3DS(data.body.three_ds_data, async function(cRes){
-          debug("cRes from 3DS challenge:", cRes);
-          const challengeResp = await fetch("{{ route('handle3DSNotification') }}",{
-            method:"POST",
-            headers:{
-              "Content-Type":"application/json",
-              "Accept":"application/json",
-              "X-CSRF-TOKEN": document.querySelector('meta[name=csrf-token]').content
-            },
-            body:JSON.stringify({transactionId:data.body.transactionId, cRes})
-          });
-          const challengeData = await challengeResp.json();
-          debug("3DS challenge backend response:", challengeData);
-          if(challengeData.body?.['3DSecure']?.status==="Authenticated"){
-            alert("Payment successful!");
-          }else{
-            showError("3DS Authentication failed.");
-            submitBtn.disabled=false;
-            submitBtn.textContent="Try Again";
-          }
+      if (data.status === 202 && data.body && data.body.acsUrl) {
+    debug("3DS authentication required, invoking Drop-In 3DS handler");
+    
+    // Create the 3DS data object that the Drop-in expects
+    const threeDSData = {
+        acsUrl: data.body.acsUrl,
+        acsTransId: data.body.acsTransId,
+        dsTransId: data.body.dsTransId,
+        cReq: data.body.cReq,
+        threeDSSessionData: data.body.threeDSSessionData || '' // Add if available
+    };
+
+    try {
+        const result = await checkout.handle3DS(threeDSData, async (cRes) => {
+            debug("cRes from 3DS challenge:", cRes);
+            
+            try {
+                const challengeResp = await fetch("{{ route('handle3DSNotification') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json",
+                        "X-CSRF-TOKEN": document.querySelector('meta[name=csrf-token]').content
+                    },
+                    body: JSON.stringify({
+                        transactionId: data.body.transactionId,
+                        cRes: cRes.cres // Note: it should be 'cres' (lowercase) as that's what Opayo returns
+                    })
+                });
+
+                const challengeData = await challengeResp.json();
+                debug("3DS challenge backend response:", challengeData);
+                
+                if (challengeData.body?.status === "Ok") {
+                    alert("Payment successful!");
+                    // Handle successful payment
+                } else {
+                    throw new Error(challengeData.body?.statusDetail || "3DS authentication failed");
+                }
+            } catch (error) {
+                console.error("3DS processing error:", error);
+                showError("Payment processing failed. Please try again.");
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Pay Now";
+            }
         });
-        return;
-      }
+
+        debug("3DS challenge result:", result);
+    } catch (error) {
+        console.error("3DS challenge error:", error);
+        showError("3D Secure authentication failed. Please try again.");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Pay Now";
+    }
+    return;
+}
 
       if(data.status >= 400 || data.body?.status==="Rejected"){throw new Error(data.body?.statusDetail || "Payment failed");}
 
