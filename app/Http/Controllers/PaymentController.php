@@ -159,6 +159,7 @@ $callbackUrl = url('/opayo/callback');
 $clientIp = $r->ip();
         $payload = [
             "transactionType" => "Payment",
+            "amount" => $amountInPence,
             "paymentMethod" => [
                 "card" => [
                     "merchantSessionKey" => $data['merchantSessionKey'],
