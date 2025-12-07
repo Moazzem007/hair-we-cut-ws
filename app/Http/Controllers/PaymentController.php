@@ -313,7 +313,7 @@ $clientIp = $r->ip();
                 "mitType" => "Unscheduled",
                 // "recurringExpiry" => "20200301",
                 // "recurringFrequency" => "28",
-                "purchaseInstalData" => "6",
+                // "purchaseInstalData" => "6",
             ],
             "fiRecipient" => [
                 "accountNumber" => "1234567890",
