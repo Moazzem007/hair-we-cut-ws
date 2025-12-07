@@ -122,12 +122,12 @@
                 <span class="detail-label">Order Number</span>
                 <span class="detail-value">#{{ $order->id }}</span>
             </div>
-            @if($appointment)
+            {{-- @if($appointment)
             <div class="detail-row">
                 <span class="detail-label">Appointment</span>
                 <span class="detail-value">#{{ $appointment->id }}</span>
             </div>
-            @endif
+            @endif --}}
             <div class="detail-row">
                 <span class="detail-label">Amount Paid</span>
                 <span class="detail-value amount">£{{ number_format($order->amount / 100, 2) }}</span>

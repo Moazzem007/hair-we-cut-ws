@@ -595,15 +595,14 @@ $clientIp = $r->ip();
         return redirect('/')->with('error', 'Invalid payment confirmation');
     }
     
-    $order = Order::with('appointment')->find($orderId);
+    $order = Order::find($orderId);
     
     if (!$order) {
         return redirect('/')->with('error', 'Order not found');
     }
     
     return view('payment.success', [
-        'order' => $order,
-        'appointment' => $order->appointment
+        'order' => $order
     ]);
 }
 
