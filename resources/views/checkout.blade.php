@@ -124,7 +124,7 @@
                     },
                     body: JSON.stringify({
                         transactionId: data.body.transactionId,
-                        cRes: cRes.cres // Note: it should be 'cres' (lowercase) as that's what Opayo returns
+                        cRes: data.body.cReq // Note: it should be 'cres' (lowercase) as that's what Opayo returns
                     })
                 });
 
