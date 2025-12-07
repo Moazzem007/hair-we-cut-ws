@@ -120,7 +120,7 @@
             debug("cRes from 3DS challenge:", cRes);
             
             try {
-                const challengeResp = await fetch("{{ route('handle3DSNotification') }}", {
+                const challengeResp = await fetch("{{ url('/api/handle3DSNotification') }}", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
