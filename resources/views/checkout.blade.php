@@ -115,6 +115,8 @@
         threeDSSessionData: data.body.threeDSSessionData || '' // Add if available
     };
 
+    console.log('checkout exists?', window.checkout);
+console.log('type of threeDS:', window.checkout ? typeof window.checkout.threeDS : 'checkout missing');
     try {
         const result = await checkout.threeDS(threeDSData, async (cRes) => {
             debug("cRes from 3DS challenge:", cRes);
