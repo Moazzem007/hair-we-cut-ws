@@ -171,7 +171,7 @@
   async function processPayment(cardIdentifier){
     debug("=== PROCESSING PAYMENT ===");
     
-    const sessionData = btoa(`order_${orderId}_appointment_${appointmentId}`);
+    const sessionData = btoa(`order_${orderId}`);
     
     const payload = {
       appointment_id: appointmentId,

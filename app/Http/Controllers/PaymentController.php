@@ -400,36 +400,34 @@ $clientIp = $r->ip();
         $sessionData = base64_decode($validated['threeDSSessionData']);
         Log::info('Opayo: Session data decoded', ['sessionData' => $sessionData]);
 
-        // Extract order and appointment IDs
-        preg_match('/order_(\d+)_appointment_(\d+)/', $sessionData, $matches);
+        // Extract order ID (format: "order_123")
+        preg_match('/order_(\d+)/', $sessionData, $matches);
         $orderId = $matches[1] ?? null;
-        $appointmentId = $matches[2] ?? null;
 
-        if (!$orderId || !$appointmentId) {
+        if (!$orderId) {
             Log::error('Opayo: Invalid session data format', [
                 'sessionData' => $sessionData,
-                'decoded' => bin2hex(base64_decode($validated['threeDSSessionData']))
+                'expected_format' => 'order_{id}'
             ]);
             return $this->redirectToFailure('Invalid session data');
         }
 
-        // Find payment record
+        // Find payment record by order_id
         $payment = Payment::where('order_id', $orderId)
-            ->where('appointment_id', $appointmentId)
             ->whereNotNull('transaction_id')
             ->latest()
             ->first();
 
         if (!$payment) {
             Log::error('Opayo: Payment record not found', [
-                'orderId' => $orderId,
-                'appointmentId' => $appointmentId
+                'orderId' => $orderId
             ]);
             return $this->redirectToFailure('Payment record not found');
         }
 
         Log::info('Opayo: Submitting cRes to gateway', [
             'transactionId' => $payment->transaction_id,
+            'orderId' => $orderId,
             'cres_length' => strlen($validated['cres'])
         ]);
 
@@ -461,11 +459,13 @@ $clientIp = $r->ip();
             $payment->status = 'completed';
             $payment->save();
             
+            // Update order and appointment
             $order = $payment->order;
-            $appointment = $order->appointment;
-            
             $order->update(['status' => 'paid']);
-            $appointment->update(['payment_status' => 'paid']);
+            
+            if ($order->appointment) {
+                $order->appointment->update(['payment_status' => 'paid']);
+            }
             
             Log::info('Opayo: Payment successful', [
                 'orderId' => $orderId,
@@ -586,7 +586,6 @@ $clientIp = $r->ip();
 </body>
 </html>", 200)->header('Content-Type', 'text/html');
     }
-
 
 
 
