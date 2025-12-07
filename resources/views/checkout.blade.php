@@ -15,6 +15,7 @@
     #submit-button:disabled{background:#ccc;}
     .opayo-error{display:none;background:#f8d7da;color:#721c24;border:1px solid #f5c6cb;padding:12px;border-radius:4px;margin-top:20px;}
     pre#debug{background:#f8f9fa;border:1px solid #ddd;padding:10px;font-size:12px;max-height:200px;overflow:auto;}
+    #threeds-form{display:none;}
   </style>
 </head>
 <body>
@@ -30,6 +31,13 @@
 
   <div id="opayo-errors" class="opayo-error"></div>
 </div>
+
+<!-- 3DS Challenge Form (hidden, auto-submits when 3DS required) -->
+<form id="threeds-form" method="POST" action="" target="_self">
+  <input type="hidden" name="creq" id="creq-input" value="">
+  <input type="hidden" name="threeDSSessionData" id="threeds-session-input" value="">
+  <p>Redirecting to your bank for authentication...</p>
+</form>
 
 <pre id="debug"></pre>
 
@@ -65,7 +73,12 @@
 
   async function onToken(result){
     debug("Token callback:", result);
-    if(!result.success){showError(result.error?.errorMessage||"Tokenisation failed"); submitBtn.disabled=false; submitBtn.textContent="Pay Now"; return;}
+    if(!result.success){
+      showError(result.error?.errorMessage||"Tokenisation failed"); 
+      submitBtn.disabled=false; 
+      submitBtn.textContent="Pay Now"; 
+      return;
+    }
     await processPayment(result.cardIdentifier);
   }
 
@@ -75,15 +88,17 @@
       order_id: orderId,
       merchantSessionKey: msk,
       cardIdentifier,
-      browserInfo: { // strongCustomerAuthentication
+      strongCustomerAuthentication: {
         browserJavaEnabled: navigator.javaEnabled(),
-        browserColorDepth: screen.colorDepth,
-        browserScreenHeight: screen.height,
-        browserScreenWidth: screen.width,
-        browserTZ: new Date().getTimezoneOffset(),
+        browserColorDepth: String(screen.colorDepth),
+        browserScreenHeight: String(screen.height),
+        browserScreenWidth: String(screen.width),
+        browserTZ: String(new Date().getTimezoneOffset()),
         browserUserAgent: navigator.userAgent,
         browserLanguage: navigator.language,
-        notificationURL: "{{ route('handle3DSNotification') }}" // backend endpoint
+        browserAcceptHeader: "text/html,application/json",
+        browserJavascriptEnabled: true,
+        notificationURL: "{{ route('handle3DSNotification') }}"
       }
     };
 
@@ -103,98 +118,71 @@
       const data = await response.json();
       debug("Backend response:", data);
 
-      if (data.status === 202 && data.body && data.body.acsUrl) {
-    debug("3DS authentication required, invoking Drop-In 3DS handler");
-    
-    // Create the 3DS data object that the Drop-in expects
-    const threeDSData = {
-        acsUrl: data.body.acsUrl,
-        acsTransId: data.body.acsTransId,
-        dsTransId: data.body.dsTransId,
-        cReq: data.body.cReq,
-        threeDSSessionData: data.body.threeDSSessionData || '' // Add if available
-    };
+      // Check if 3DS authentication is required
+      if (data.body && data.body.status === "3DAuth") {
+        debug("3DS authentication required");
+        
+        // Validate required 3DS fields
+        if (!data.body.acsUrl || !data.body.cReq) {
+          throw new Error("Missing 3DS authentication data");
+        }
 
-    const challengeResp = await fetch("{{ route('handle3DSNotification') }}", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Accept": "application/json",
-                        "X-CSRF-TOKEN": document.querySelector('meta[name=csrf-token]').content
-                    },
-                    body: JSON.stringify({
-                        transactionId: data.body.transactionId,
-                        cRes: data.body.cReq // Note: it should be 'cres' (lowercase) as that's what Opayo returns
-                    })
-                });
+        // Prepare threeDSSessionData - use transactionId to track the transaction
+        const threeDSSessionData = btoa(data.body.transactionId);
+        
+        // Populate the hidden form
+        document.getElementById("threeds-form").action = data.body.acsUrl;
+        document.getElementById("creq-input").value = data.body.cReq;
+        document.getElementById("threeds-session-input").value = threeDSSessionData;
+        
+        // Hide checkout, show 3DS redirect message
+        document.querySelector(".checkout-container").style.display = "none";
+        document.getElementById("threeds-form").style.display = "block";
+        
+        debug("Redirecting to ACS URL:", data.body.acsUrl);
+        
+        // Auto-submit the form to redirect to bank's authentication page
+        document.getElementById("threeds-form").submit();
+        return;
+      }
 
-                const challengeData = await challengeResp.json();
-                debug("3DS challenge backend response:", challengeData);
+      // Check for authorization success (no 3DS required)
+      if(data.body && data.body.status === "Ok"){
+        alert("Payment successful!");
+        debug("Payment success:", data);
+        // Redirect to success page
+        window.location.href = "{{ url('/payment/success') }}?order=" + orderId;
+        return;
+      }
 
-    console.log('checkout exists?', window.checkout);
-console.log('type of threeDS:', window.checkout ? typeof window.checkout.threeDS : 'checkout missing');
-    try {
-        const result = await checkout.threeDS(threeDSData, async (cRes) => {
-            debug("cRes from 3DS challenge:", cRes);
-            
-            try {
-                const challengeResp = await fetch("{{ route('handle3DSNotification') }}", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Accept": "application/json",
-                        "X-CSRF-TOKEN": document.querySelector('meta[name=csrf-token]').content
-                    },
-                    body: JSON.stringify({
-                        transactionId: data.body.transactionId,
-                        cRes: cRes.cres // Note: it should be 'cres' (lowercase) as that's what Opayo returns
-                    })
-                });
+      // Handle rejected or failed transactions
+      if(data.status >= 400 || data.body?.status==="Rejected"){
+        throw new Error(data.body?.statusDetail || "Payment failed");
+      }
 
-                const challengeData = await challengeResp.json();
-                debug("3DS challenge backend response:", challengeData);
-                
-                if (challengeData.body?.status === "Ok") {
-                    alert("Payment successful!");
-                    // Handle successful payment
-                } else {
-                    throw new Error(challengeData.body?.statusDetail || "3DS authentication failed");
-                }
-            } catch (error) {
-                console.error("3DS processing error:", error);
-                showError("Payment processing failed. Please try again.");
-                submitBtn.disabled = false;
-                submitBtn.textContent = "Pay Now";
-            }
-        });
-
-        debug("3DS challenge result:", result);
-    } catch (error) {
-        console.error("3DS challenge error:", error);
-        showError("3D Secure authentication failed. Please try again.");
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Pay Now";
-    }
-    return;
-}
-
-      if(data.status >= 400 || data.body?.status==="Rejected"){throw new Error(data.body?.statusDetail || "Payment failed");}
-
-      alert("Payment successful!");
-      debug("Payment success:", data);
+      // If we get here, something unexpected happened
+      throw new Error("Unexpected payment response");
 
     }catch(error){
       console.error("Payment error:", error);
       showError(error.message || "An error occurred during payment");
       submitBtn.disabled=false;
-      submitBtn.textContent="Try Again";
+      submitBtn.textContent="Pay Now";
     }
   }
 
   submitBtn.addEventListener("click", async ()=>{
     submitBtn.disabled=true;
     submitBtn.textContent="Processing…";
-    try{await checkout.tokenise();}catch(error){console.error("Tokenization error:",error);showError("Failed to process payment. Please try again.");submitBtn.disabled=false;submitBtn.textContent="Pay Now";}
+    errorBox.style.display="none";
+    try{
+      await checkout.tokenise();
+    }catch(error){
+      console.error("Tokenization error:",error);
+      showError("Failed to process payment. Please check your card details and try again.");
+      submitBtn.disabled=false;
+      submitBtn.textContent="Pay Now";
+    }
   });
 
 })();
