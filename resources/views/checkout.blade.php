@@ -179,7 +179,7 @@
       merchantSessionKey: msk,
       cardIdentifier: cardIdentifier,
       strongCustomerAuthentication: {
-        notificationURL: "{{ url('/3ds-notification') }}", // Must be absolute URL
+        notificationURL: "{{ route('handle3DSNotification') }}", // Must be absolute URL - web route
         browserIP: "{{ request()->ip() }}",
         browserJavaEnabled: navigator.javaEnabled(),
         browserJavascriptEnabled: true,

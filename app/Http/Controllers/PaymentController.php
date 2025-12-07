@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Services\OpayoService;
 use App\Models\PaymentOrders as Order;
 use App\Models\Payment;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
@@ -379,51 +380,212 @@ $clientIp = $r->ip();
     /**
      * Handle 3DS notification callback from the bank
      */
-    public function handle3DSNotification(Request $r)
+    public function handle3DSNotification(Request $request)
     {
-        $data = $r->validate([
-            'cRes' => 'required|string',
-            'transactionId' => 'required|string'
+        // Log raw input for debugging
+        Log::info('Opayo: 3DS Notification - Raw Input', [
+            'all' => $request->all(),
+            'method' => $request->method(),
+            'url' => $request->fullUrl(),
+            'ip' => $request->ip()
         ]);
 
-        Log::info('Opayo: 3DS Notification received', $data);
+        // Validate input from bank
+        $validated = $request->validate([
+            'cres' => 'required|string',  // Lowercase 'cres' from ACS
+            'threeDSSessionData' => 'required|string'
+        ]);
 
-        $resp = $this->opayo->submit3DSecureChallenge($data['transactionId'], $data['cRes']);
+        // Decode session data
+        $sessionData = base64_decode($validated['threeDSSessionData']);
+        Log::info('Opayo: Session data decoded', ['sessionData' => $sessionData]);
 
-        $body = [];
-        try {
-            $body = $resp->json();
-        } catch (\Exception $e) {
-            Log::error('Opayo: Failed to parse 3DS response', [
-                'body' => $resp->body(),
-                'exception' => $e->getMessage()
+        // Extract order and appointment IDs
+        preg_match('/order_(\d+)_appointment_(\d+)/', $sessionData, $matches);
+        $orderId = $matches[1] ?? null;
+        $appointmentId = $matches[2] ?? null;
+
+        if (!$orderId || !$appointmentId) {
+            Log::error('Opayo: Invalid session data format', [
+                'sessionData' => $sessionData,
+                'decoded' => bin2hex(base64_decode($validated['threeDSSessionData']))
             ]);
-            $body = ['error' => true, 'message' => 'Invalid 3DS response', 'raw' => $resp->body()];
+            return $this->redirectToFailure('Invalid session data');
         }
 
-        // Update Payment status based on 3DS response
-        $payment = Payment::where('transaction_id', $data['transactionId'])->first();
-        if ($payment) {
-            $payment->raw_response .= "\n3DS Challenge Response: " . json_encode($body);
-            if (isset($body['3DSecure']) && $body['3DSecure']['status'] === 'Authenticated') {
-                $payment->status = 'Authenticated';
-                $order = $payment->order;
-                $appointment = $order->appointment;
-                $order->update(['status' => 'paid']);
-                $appointment->update(['payment_status' => 'paid']);
-                $appointment->save();
-            } else {
-                $payment->status = '3DS Failed';
-            }
+        // Find payment record
+        $payment = Payment::where('order_id', $orderId)
+            ->where('appointment_id', $appointmentId)
+            ->whereNotNull('transaction_id')
+            ->latest()
+            ->first();
+
+        if (!$payment) {
+            Log::error('Opayo: Payment record not found', [
+                'orderId' => $orderId,
+                'appointmentId' => $appointmentId
+            ]);
+            return $this->redirectToFailure('Payment record not found');
+        }
+
+        Log::info('Opayo: Submitting cRes to gateway', [
+            'transactionId' => $payment->transaction_id,
+            'cres_length' => strlen($validated['cres'])
+        ]);
+
+        // Submit cRes to Opayo
+        $response = $this->submit3DSecureChallenge(
+            $payment->transaction_id,
+            $validated['cres']
+        );
+
+        if (!$response) {
+            Log::error('Opayo: Failed to submit 3DS challenge');
+            return $this->redirectToFailure('Unable to complete authentication');
+        }
+
+        $body = $response->json();
+        
+        Log::info('Opayo: 3DS Challenge response received', [
+            'status' => $body['status'] ?? 'unknown',
+            'statusCode' => $body['statusCode'] ?? 'unknown',
+            'statusDetail' => $body['statusDetail'] ?? ''
+        ]);
+
+        // Update payment record
+        $payment->raw_response = ($payment->raw_response ?? '') . "\n3DS Challenge: " . json_encode($body);
+        
+        // Check authentication result
+        if (isset($body['status']) && $body['status'] === 'Ok') {
+            // Success!
+            $payment->status = 'completed';
             $payment->save();
+            
+            $order = $payment->order;
+            $appointment = $order->appointment;
+            
+            $order->update(['status' => 'paid']);
+            $appointment->update(['payment_status' => 'paid']);
+            
+            Log::info('Opayo: Payment successful', [
+                'orderId' => $orderId,
+                'transactionId' => $payment->transaction_id,
+                'amount' => $order->amount
+            ]);
+            
+            return $this->redirectToSuccess($orderId);
+        } else {
+            // Failed authentication
+            $payment->status = '3ds_failed';
+            $payment->save();
+            
+            $statusDetail = $body['statusDetail'] ?? 'Authentication failed';
+            
+            Log::warning('Opayo: 3DS authentication failed', [
+                'orderId' => $orderId,
+                'status' => $body['status'] ?? 'unknown',
+                'statusDetail' => $statusDetail
+            ]);
+            
+            return $this->redirectToFailure($statusDetail);
         }
-
-        return response()->json([
-            'status' => $resp->status(),
-            'body' => $body
-        ], $resp->status());
     }
 
+    /**
+     * Submit 3DS challenge response to Opayo
+     */
+    private function submit3DSecureChallenge($transactionId, $cRes)
+    {
+        $integrationKey = config('services.opayo.integration_key');
+        $integrationPassword = config('services.opayo.integration_password');
+        $endpoint = config('services.opayo.endpoint');
+        
+        $authString = base64_encode("{$integrationKey}:{$integrationPassword}");
+        
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => "Basic {$authString}",
+                'Content-Type' => 'application/json',
+            ])->post("{$endpoint}/api/v1/transactions/{$transactionId}/3d-secure-challenge", [
+                'cRes' => $cRes  // IMPORTANT: Capital R
+            ]);
+
+            Log::info('Opayo: 3DS challenge API response', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
+            return $response;
+            
+        } catch (\Exception $e) {
+            Log::error('Opayo: 3DS challenge submission exception', [
+                'transactionId' => $transactionId,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Redirect to success page with HTML
+     */
+    private function redirectToSuccess($orderId)
+    {
+        $url = url("/payment/success?order={$orderId}");
+        
+        return response()->make("<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Payment Successful</title>
+    <meta http-equiv='refresh' content='1;url={$url}'>
+    <style>
+        body{font-family:sans-serif;text-align:center;padding:50px;background:#f0f9f0;}
+        .success{color:#28a745;font-size:24px;margin:20px 0;}
+        .spinner{border:4px solid #f3f3f3;border-top:4px solid #28a745;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:30px auto;}
+        @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+    </style>
+</head>
+<body>
+    <div class='success'>✓ Payment Successful!</div>
+    <div class='spinner'></div>
+    <p>Redirecting you back to your account...</p>
+    <script>
+        setTimeout(function(){ window.location.href = '{$url}'; }, 1000);
+    </script>
+</body>
+</html>", 200)->header('Content-Type', 'text/html');
+    }
+
+    /**
+     * Redirect to failure page with HTML
+     */
+    private function redirectToFailure($message = 'Payment failed')
+    {
+        $url = url("/payment/failed?error=" . urlencode($message));
+        
+        return response()->make("<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Payment Failed</title>
+    <meta http-equiv='refresh' content='3;url={$url}'>
+    <style>
+        body{font-family:sans-serif;text-align:center;padding:50px;background:#fff5f5;}
+        .error{color:#dc3545;font-size:24px;margin:20px 0;}
+        .message{color:#666;font-size:16px;margin:20px 0;}
+    </style>
+</head>
+<body>
+    <div class='error'>✗ Payment Failed</div>
+    <div class='message'>" . htmlspecialchars($message) . "</div>
+    <p>Redirecting you back...</p>
+    <script>
+        setTimeout(function(){ window.location.href = '{$url}'; }, 3000);
+    </script>
+</body>
+</html>", 200)->header('Content-Type', 'text/html');
+    }
 
 
 
