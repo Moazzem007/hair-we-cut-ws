@@ -16,6 +16,7 @@
     .opayo-error{display:none;background:#f8d7da;color:#721c24;border:1px solid #f5c6cb;padding:12px;border-radius:4px;margin-top:20px;}
     pre#debug{background:#f8f9fa;border:1px solid #ddd;padding:10px;font-size:12px;max-height:200px;overflow:auto;}
     #threeds-form{display:none;}
+    .redirect-message{text-align:center;padding:20px;}
   </style>
 </head>
 <body>
@@ -36,7 +37,10 @@
 <form id="threeds-form" method="POST" action="" target="_self">
   <input type="hidden" name="creq" id="creq-input" value="">
   <input type="hidden" name="threeDSSessionData" id="threeds-session-input" value="">
-  <p>Redirecting to your bank for authentication...</p>
+  <div class="redirect-message">
+    <p>Redirecting to your bank for secure authentication...</p>
+    <p>Please do not close this window.</p>
+  </div>
 </form>
 
 <pre id="debug"></pre>
@@ -68,7 +72,7 @@
     checkout.form("#sp-container");
     submitBtn.disabled=false;
     submitBtn.textContent="Pay Now";
-    debug("Drop-In mounted");
+    debug("Drop-In mounted successfully");
   }catch(e){debug("Mount failed:",e);showError("Payment widget failed to load.");return;}
 
   async function onToken(result){
@@ -83,26 +87,31 @@
   }
 
   async function processPayment(cardIdentifier){
+    // IMPORTANT: Use order ID or vendor code for threeDSSessionData, NOT transactionId
+    // Opayo rejects transactionId in threeDSSessionData for unknown reasons
+    const sessionData = btoa(`order_${orderId}_appointment_${appointmentId}`);
+    
     const payload = {
       appointment_id: appointmentId,
       order_id: orderId,
       merchantSessionKey: msk,
       cardIdentifier,
       strongCustomerAuthentication: {
+        notificationURL: "{{ url('/') }}" + "/3ds-notification", // Must be absolute URL
+        browserIP: "{{ request()->ip() }}", // Send from backend
         browserJavaEnabled: navigator.javaEnabled(),
+        browserJavascriptEnabled: true,
         browserColorDepth: String(screen.colorDepth),
         browserScreenHeight: String(screen.height),
         browserScreenWidth: String(screen.width),
         browserTZ: String(new Date().getTimezoneOffset()),
         browserUserAgent: navigator.userAgent,
         browserLanguage: navigator.language,
-        browserAcceptHeader: "text/html,application/json",
-        browserJavascriptEnabled: true,
-        notificationURL: "{{ route('handle3DSNotification') }}"
+        browserAcceptHeader: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
       }
     };
 
-    debug("Sending payload to backend:", payload);
+    debug("Sending transaction payload:", payload);
 
     try{
       const response = await fetch("{{ url('/api/transactions') }}",{
@@ -120,52 +129,52 @@
 
       // Check if 3DS authentication is required
       if (data.body && data.body.status === "3DAuth") {
-        debug("3DS authentication required");
+        debug("3DS authentication required - redirecting to ACS");
         
         // Validate required 3DS fields
         if (!data.body.acsUrl || !data.body.cReq) {
-          throw new Error("Missing 3DS authentication data");
+          throw new Error("Missing 3DS authentication data from gateway");
         }
 
-        // Prepare threeDSSessionData - use transactionId to track the transaction
-        const threeDSSessionData = btoa(data.body.transactionId);
+        // Store transaction ID in sessionStorage for when user returns
+        sessionStorage.setItem('opayo_transaction_id', data.body.transactionId);
+        sessionStorage.setItem('opayo_order_id', orderId);
         
-        // Populate the hidden form
+        // Populate the hidden form with ACS data
         document.getElementById("threeds-form").action = data.body.acsUrl;
         document.getElementById("creq-input").value = data.body.cReq;
-        document.getElementById("threeds-session-input").value = threeDSSessionData;
+        document.getElementById("threeds-session-input").value = sessionData;
         
-        // Hide checkout, show 3DS redirect message
+        // Hide checkout UI, show redirect message
         document.querySelector(".checkout-container").style.display = "none";
         document.getElementById("threeds-form").style.display = "block";
         
-        debug("Redirecting to ACS URL:", data.body.acsUrl);
+        debug("Submitting to ACS:", data.body.acsUrl);
         
-        // Auto-submit the form to redirect to bank's authentication page
+        // Auto-submit the form to redirect user to bank's authentication page
         document.getElementById("threeds-form").submit();
         return;
       }
 
-      // Check for authorization success (no 3DS required)
+      // Check for immediate authorization success (no 3DS required)
       if(data.body && data.body.status === "Ok"){
+        debug("Payment authorized without 3DS");
         alert("Payment successful!");
-        debug("Payment success:", data);
-        // Redirect to success page
         window.location.href = "{{ url('/payment/success') }}?order=" + orderId;
         return;
       }
 
       // Handle rejected or failed transactions
-      if(data.status >= 400 || data.body?.status==="Rejected"){
-        throw new Error(data.body?.statusDetail || "Payment failed");
+      if(data.status >= 400 || data.body?.status === "Rejected"){
+        throw new Error(data.body?.statusDetail || "Payment declined by bank");
       }
 
-      // If we get here, something unexpected happened
-      throw new Error("Unexpected payment response");
+      // Unexpected response
+      throw new Error("Unexpected payment response from gateway");
 
     }catch(error){
       console.error("Payment error:", error);
-      showError(error.message || "An error occurred during payment");
+      showError(error.message || "Payment processing failed");
       submitBtn.disabled=false;
       submitBtn.textContent="Pay Now";
     }
@@ -179,7 +188,7 @@
       await checkout.tokenise();
     }catch(error){
       console.error("Tokenization error:",error);
-      showError("Failed to process payment. Please check your card details and try again.");
+      showError("Unable to process card details. Please check and try again.");
       submitBtn.disabled=false;
       submitBtn.textContent="Pay Now";
     }
