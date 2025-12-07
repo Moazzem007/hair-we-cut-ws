@@ -93,68 +93,233 @@ public function registerTransaction(Request $r)
         $amountInPence = (int) round(floatval($order->amount) * 100);
 
         // Prepare payload for Opayo with strongCustomerAuthentication and notificationURL
+//         $payload = [
+//     "transactionType" => "Payment",
+//     "vendorTxCode"    => $vendorTxCode,
+//     "amount"          => $amountInPence,
+//     "currency"        => "GBP",
+//     "description"     => "Order #{$order->id} payment",
+//     "paymentMethod"   => [
+//         "card" => [
+//             "merchantSessionKey" => $data['merchantSessionKey'],
+//             "cardIdentifier"     => $data['cardIdentifier'],
+//             "reusable"           => false,
+//         ],
+//     ],
+//     "customerFirstName" => $customer->name ?? "Customer",
+//     "customerLastName"  => "Name",
+//     "customerEmail"     => $customer->email ?? "unknown@example.com",
+//     "customerPhone"     => $customer->contact ?? null,
+//     "billingAddress"    => [
+//         "address1"   => $customer->billing_address,
+//         "city"       => $customer->city ?? "N/A",
+//         "postalCode" => $customer->postal_code,
+//         "country"    => "GB",
+//     ],
+//     "apply3DSecure" => "Force",
+//     "strongCustomerAuthentication" => [
+//         "notificationURL" => url('/3ds-notification'), // Must be HTTPS
+//         "browserIP" => $r->ip() ?: '1.1.1.1',
+//         "browserAcceptHeader" => $r->header('Accept') ?? '*/*',
+//         "browserUserAgent" => $r->header('User-Agent') ?? 'Mozilla/5.0',
+//         "browserJavaEnabled" => true,
+//         "browserJavascriptEnabled" => true,
+//         "browserLanguage" => substr($r->header('Accept-Language', 'en-GB'), 0, 8),
+//         "browserColorDepth" => (string)($r->input('browserColorDepth') ?? 24),
+//         "browserScreenHeight" => (string)($r->input('browserScreenHeight') ?? '1080'),
+//         "browserScreenWidth" => (string)($r->input('browserScreenWidth') ?? '1920'),
+//         "browserTZ" => (string)($r->input('browserTZ') ?? '0'),
+//         "challengeWindowSize" => "Small",
+//         "transType" => "GoodsAndServicePurchase",
+//         "threeDSRequestorAuthenticationInfo" => [
+//             "threeDSReqAuthMethod" => "01",
+//             "threeDSReqAuthTimestamp" => now()->format('YmdHis'),
+//             "threeDSReqAuthData" => "fido"
+//         ],
+//         "threeDSRequestorPriorAuthenticationInfo" => [
+//             "threeDSReqPriorAuthMethod" => "FrictionlessAuthentication", // or "ChallengeAuthentication", "AVSVerified", "OtherIssuerMethods"
+//             "threeDSReqPriorAuthTimestamp" => now()->subHours(1)->format('YmdHi'), // Format: YYYYMMDDHHmm
+//             "threeDSReqPriorRef" => "", // Should be empty string or a valid 36-char UUID if available
+//             "threeDSReqPriorAuthData" => "" // Optional: Add if you have specific auth data
+//         ],
+//         "acctID" => (string)$customer->id,
+//         "merchantRiskIndicator" => [
+//             "deliveryEmailAddress" => $customer->email ?? "noreply@example.com",
+//             "deliveryTimeframe" => "ElectronicDelivery", // or "SameDayShipping", "OvernightShipping", "TwoDayOrMoreShipping"
+//             "giftCardAmount" => "0", // Must be string, 0 for non-gift card purchases
+//             "giftCardCount" => "0", // Must be string, 0 for non-gift card purchases
+//             "preOrderDate" => "", // Format: YYYYMMDD, empty if not a pre-order
+//             "preOrderPurchaseInd" => "MerchandiseAvailable", // or "FutureAvailability"
+//             "reorderItemsInd" => "FirstTimeOrdered", // or "Reordered"
+//             "shipIndicator" => "CardholderBillingAddress" // or "OtherVerifiedAddress", "DifferentToCardholderBillingAddress", etc.
+//         ]
+//     ],
+// ];
+$callbackUrl = url('/opayo/callback'); 
+$clientIp = $r->ip();
         $payload = [
-    "transactionType" => "Payment",
-    "vendorTxCode"    => $vendorTxCode,
-    "amount"          => $amountInPence,
-    "currency"        => "GBP",
-    "description"     => "Order #{$order->id} payment",
-    "paymentMethod"   => [
-        "card" => [
-            "merchantSessionKey" => $data['merchantSessionKey'],
-            "cardIdentifier"     => $data['cardIdentifier'],
-            "reusable"           => false,
-        ],
-    ],
-    "customerFirstName" => $customer->name ?? "Customer",
-    "customerLastName"  => "Name",
-    "customerEmail"     => $customer->email ?? "unknown@example.com",
-    "customerPhone"     => $customer->contact ?? null,
-    "billingAddress"    => [
-        "address1"   => $customer->billing_address,
-        "city"       => $customer->city ?? "N/A",
-        "postalCode" => $customer->postal_code,
-        "country"    => "GB",
-    ],
-    "apply3DSecure" => "Force",
-    "strongCustomerAuthentication" => [
-        "notificationURL" => url('/3ds-notification'), // Must be HTTPS
-        "browserIP" => $r->ip() ?: '1.1.1.1',
-        "browserAcceptHeader" => $r->header('Accept') ?? '*/*',
-        "browserUserAgent" => $r->header('User-Agent') ?? 'Mozilla/5.0',
-        "browserJavaEnabled" => true,
-        "browserJavascriptEnabled" => true,
-        "browserLanguage" => substr($r->header('Accept-Language', 'en-GB'), 0, 8),
-        "browserColorDepth" => (string)($r->input('browserColorDepth') ?? 24),
-        "browserScreenHeight" => (string)($r->input('browserScreenHeight') ?? '1080'),
-        "browserScreenWidth" => (string)($r->input('browserScreenWidth') ?? '1920'),
-        "browserTZ" => (string)($r->input('browserTZ') ?? '0'),
-        "challengeWindowSize" => "Small",
-        "transType" => "GoodsAndServicePurchase",
-        "threeDSRequestorAuthenticationInfo" => [
-            "threeDSReqAuthMethod" => "01",
-            "threeDSReqAuthTimestamp" => now()->format('YmdHis'),
-            "threeDSReqAuthData" => "fido"
-        ],
-        "threeDSRequestorPriorAuthenticationInfo" => [
-            "threeDSReqPriorAuthMethod" => "FrictionlessAuthentication", // or "ChallengeAuthentication", "AVSVerified", "OtherIssuerMethods"
-            "threeDSReqPriorAuthTimestamp" => now()->subHours(1)->format('YmdHi'), // Format: YYYYMMDDHHmm
-            "threeDSReqPriorRef" => "", // Should be empty string or a valid 36-char UUID if available
-            "threeDSReqPriorAuthData" => "" // Optional: Add if you have specific auth data
-        ],
-        "acctID" => (string)$customer->id,
-        "merchantRiskIndicator" => [
-            "deliveryEmailAddress" => $customer->email ?? "noreply@example.com",
-            "deliveryTimeframe" => "ElectronicDelivery", // or "SameDayShipping", "OvernightShipping", "TwoDayOrMoreShipping"
-            "giftCardAmount" => "0", // Must be string, 0 for non-gift card purchases
-            "giftCardCount" => "0", // Must be string, 0 for non-gift card purchases
-            "preOrderDate" => "", // Format: YYYYMMDD, empty if not a pre-order
-            "preOrderPurchaseInd" => "MerchandiseAvailable", // or "FutureAvailability"
-            "reorderItemsInd" => "FirstTimeOrdered", // or "Reordered"
-            "shipIndicator" => "CardholderBillingAddress" // or "OtherVerifiedAddress", "DifferentToCardholderBillingAddress", etc.
-        ]
-    ],
-];
+            "transactionType" => "Payment",
+            "paymentMethod" => [
+                "card" => [
+                    "merchantSessionKey" => $data['merchantSessionKey'],
+                    "cardIdentifier" => $data['cardIdentifier'],
+                    "reusable" => false,
+                    "save" => false,
+                ],
+                // "paypal" => [
+                //     "merchantSessionKey" => $data['merchantSessionKey'],
+                //     "callbackUrl" => $callbackUrl,
+                // ],
+                // "applePay" => [
+                //     "clientIpAddress" => $clientIp,
+                //     "merchantSessionKey" => $data['merchantSessionKey'],
+                //     "sessionValidationToken" => "SFGVHSBEVGAV/VDAYRR+345S",
+                //     "paymentData" => "AAAAAAABBBBBCCCCCC",
+                //     "applicationData" => "FOeVKLA...PFE4wrw==",
+                //     "displayName" => "Visa 1234",
+                // ],
+                // "googlePay" => [
+                //     "payload" => "AAAAAAABBBBBCCCCCC",
+                //     "clientIpAddress" => "10.20.30.40",
+                //     "merchantSessionKey" => "90BDF208-3C19-40AC-858B-3F4054DCD1C0",
+                // ],
+                // "ideal" => [
+                //     "merchantSessionKey" => "90BDF208-3C19-40AC-858B-3F4054DCD1C0",
+                //     "callbackUrl" => "https://www.example.com",
+                //     "languageCode" => "en",
+                // ],
+                // "alipay" => [
+                //     "merchantSessionKey" => "90BDF208-3C19-40AC-858B-3F4054DCD1C0",
+                //     "callbackUrl" => "https://www.example.com",
+                //     "languageCode" => "en",
+                //     "shopperPlatform" => "mobile",
+                // ],
+                // "wechatpay" => [
+                //     "merchantSessionKey" => "90BDF208-3C19-40AC-858B-3F4054DCD1C0",
+                //     "callbackUrl" => "https://www.example.com",
+                //     "languageCode" => "en",
+                //     "bic" => "SFRTD45",
+                // ],
+                // "eps" => [
+                //     "merchantSessionKey" => "90BDF208-3C19-40AC-858B-3F4054DCD1C0",
+                //     "callbackUrl" => "https://www.example.com",
+                //     "languageCode" => "en",
+                //     "bic" => "SFRTD45",
+                // ],
+                // "trustly" => [
+                //     "merchantSessionKey" => "90BDF208-3C19-40AC-858B-3F4054DCD1C0",
+                //     "callbackUrl" => "https://www.example.com",
+                //     "languageCode" => "en",
+                //     "clientIpAddress" => "10.20.30.40",
+                //     "beneficiaryId" => "string",
+                //     "beneficiaryName" => "string",
+                //     "beneficiaryAddress" => "string",
+                //     "beneficiaryCountryCode" => "string",
+                // ],
+            ],
+            "vendorTxCode" => $vendorTxCode,
+            "currency" => "GBP",
+            "description" => "Transaction",
+            "customerFirstName" => $customer->name ?? "Customer",
+            "customerLastName" => "Name",
+            "billingAddress" => [
+                "address1" => $customer->billing_address,
+                "city" => $customer->city ?? "N/A",
+                "country" => "GB"
+            ],
+            "customerEmail"     => $customer->email ?? "unknown@example.com",
+            "customerPhone"     => $customer->contact ?? null,
+            // "settlementReferenceText" => "123456GRTY234",
+            // "entryMethod" => "Ecommerce",
+            // "giftAid" => false,
+            "apply3DSecure" => "Force",
+            "applyAvsCvcCheck" => "Disable",
+            // "shippingDetails" => [
+            //     "recipientFirstName" => "Sam",
+            //     "recipientLastName" => "Jones",
+            //     "shippingAddress1" => "407 St. John Street",
+            //     "shippingCity" => "London",
+            //     "shippingCountry" => "GB",
+            //     "shippingAddress2" => "string",
+            //     "shippingAddress3" => "string",
+            //     "shippingPostalCode" => "EC1V 4AB",
+            //     "shippingState" => "st",
+            // ],
+            // "referrerId" => "f9979593-a390-4069-b126-7914783fc",
+            "strongCustomerAuthentication" => [
+                "notificationURL" => route('handle3DSNotification', [], true),
+                "browserIP" => $clientIp,
+                "browserAcceptHeader" => "*/*",
+                "browserJavascriptEnabled" => false,
+                "browserUserAgent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:67.0) Gecko/20100101 Firefox/67.0",
+                "challengeWindowSize" => "Small",
+                "transType" => "GoodsAndServicePurchase",
+                "browserLanguage" => "en",
+                "browserJavaEnabled" => true,
+                "browserColorDepth" => "48",
+                "browserScreenHeight" => "str",
+                "browserScreenWidth" => "str",
+                "browserTZ" => "st",
+                "acctID" => "string",
+                "threeDSRequestorAuthenticationInfo" => [
+                    "threeDSReqAuthData" => "string",
+                    "threeDSReqAuthMethod" => "LoginWithThreeDSRequestorCredentials",
+                    "threeDSReqAuthTimestamp" => "201810011445",
+                ],
+                "threeDSRequestorPriorAuthenticationInfo" => [
+                    "threeDSReqPriorAuthData" => "data",
+                    "threeDSReqPriorAuthMethod" => "FrictionlessAuthentication",
+                    "threeDSReqPriorAuthTimestamp" => "201901011645",
+                    "threeDSReqPriorRef" => "2cd842f5-da5d-40b7-8ae6-6ce61cc7b580",
+                ],
+                "acctInfo" => [
+                    "chAccAgeInd" => "MoreThanSixtyDays",
+                    "chAccChange" => "20180925",
+                    "chAccChangeInd" => "MoreThanSixtyDays",
+                    "chAccDate" => "20180925",
+                    "chAccPwChange" => "20180926",
+                    "chAccPwChangeInd" => "MoreThanSixtyDays",
+                    "nbPurchaseAccount" => "5",
+                    "provisionAttemptsDay" => "0",
+                    "txnActivityDay" => "1",
+                    "txnActivityYear" => "24",
+                    "paymentAccAge" => "20180228",
+                    "paymentAccInd" => "MoreThanSixtyDays",
+                    "shipAddressUsage" => "20180220",
+                    "shipAddressUsageInd" => "MoreThanSixtyDays",
+                    "shipNameIndicator" => "FullMatch",
+                    "suspiciousAccActivity" => "NotSuspicious",
+                ],
+                // "merchantRiskIndicator" => [
+                //     "deliveryEmailAddress" => "customer@domain.com",
+                //     "deliveryTimeframe" => "OvernightShipping",
+                //     "giftCardAmount" => "123",
+                //     "giftCardCount" => "2",
+                //     "preOrderDate" => "20200220",
+                //     "preOrderPurchaseInd" => "MerchandiseAvailable",
+                //     "reorderItemsInd" => "Reordered",
+                //     "shipIndicator" => "CardholderBillingAddress",
+                // ],
+                "threeDSExemptionIndicator" => "TransactionRiskAnalysis",
+                "website" => "https://mydomain.com",
+            ],
+            "customerMobilePhone" => "+447234567891",
+            "customerWorkPhone" => "+441234567891",
+            "credentialType" => [
+                "cofUsage" => "First",
+                "initiatedType" => "CIT",
+                "mitType" => "Unscheduled",
+                "recurringExpiry" => "20200301",
+                "recurringFrequency" => "28",
+                "purchaseInstalData" => "6",
+            ],
+            "fiRecipient" => [
+                "accountNumber" => "1234567890",
+                "surname" => "Surname",
+                "postcode" => "EC1V 8AB",
+                "dateOfBirth" => "19900101",
+            ],
+        ];
 
 
         // Store initial payment attempt
@@ -318,6 +483,14 @@ public function registerTransaction(Request $r)
     public function paymentReturn(Request $r) {
         return view('payment-return', ['query'=>$r->all()]);
     }
+
+    public function handleCallback(Request $request)
+{
+    // 1. Verify the payload / signature if provided
+    // 2. Update your order/payment status
+    // 3. Return a 200 OK response
+    return response()->json(['status' => 'success']);
+}
 
     
 }

@@ -381,3 +381,5 @@ Route::middleware('api')->post('/transactions', [PaymentController::class, 'regi
 Route::post('/api/opayo/3ds/notify', [PaymentController::class, 'handle3DSNotification'])->name('opayo.3ds.notify');
 Route::post('/3ds-notification', [PaymentController::class, 'handle3DSNotification'])
      ->name('handle3DSNotification');
+
+Route::post('/opayo/callback', [PaymentController::class, 'handleCallback']);

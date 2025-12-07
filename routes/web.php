@@ -326,3 +326,5 @@ Route::get('/checkout/{order}/{appointment}', [PaymentController::class,'checkou
 Route::post('/payment-return', [PaymentController::class,'paymentReturn']); // optional callback/return page
 Route::post('/3ds-notification', [PaymentController::class, 'handle3DSNotification'])
      ->name('handle3DSNotification');
+
+Route::post('/opayo/callback', [PaymentController::class, 'handleCallback']);
