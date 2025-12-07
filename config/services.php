@@ -31,7 +31,7 @@ return [
     ],
 
     'opayo' => [
-        'base_url' => env('OPAYO_BASE_URL', 'https://sandbox.opayo.eu.elavon.com/api/v1'),
+        'endpoint' => env('OPAYO_ENDPOINT', 'https://sandbox.opayo.eu.elavon.com'),
         'integration_key' => env('OPAYO_INTEGRATION_KEY'),
         'integration_password' => env('OPAYO_INTEGRATION_PASSWORD'),
         'vendor_name' => env('OPAYO_VENDOR_NAME', 'sandbox'),
