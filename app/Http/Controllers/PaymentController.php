@@ -226,6 +226,7 @@ $clientIp = $r->ip();
             "billingAddress" => [
                 "address1" => $customer->billing_address,
                 "city" => $customer->city ?? "N/A",
+                "postalCode" => $customer->postal_code,
                 "country" => "GB"
             ],
             "customerEmail"     => $customer->email ?? "unknown@example.com",
