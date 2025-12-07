@@ -328,3 +328,10 @@ Route::post('/3ds-notification', [PaymentController::class, 'handle3DSNotificati
      ->name('3ds-notification');
 
 Route::post('/opayo/callback', [PaymentController::class, 'handleCallback']);
+
+// Payment result pages
+Route::get('/payment/success', [PaymentController::class, 'paymentSuccess'])
+    ->name('payment.success');
+    
+Route::get('/payment/failed', [PaymentController::class, 'paymentFailed'])
+    ->name('payment.failed');

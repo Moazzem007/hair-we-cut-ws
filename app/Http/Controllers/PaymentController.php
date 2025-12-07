@@ -587,6 +587,38 @@ $clientIp = $r->ip();
 </html>", 200)->header('Content-Type', 'text/html');
     }
 
+    public function paymentSuccess(Request $request)
+{
+    $orderId = $request->query('order');
+    
+    if (!$orderId) {
+        return redirect('/')->with('error', 'Invalid payment confirmation');
+    }
+    
+    $order = Order::with('appointment')->find($orderId);
+    
+    if (!$order) {
+        return redirect('/')->with('error', 'Order not found');
+    }
+    
+    return view('payment.success', [
+        'order' => $order,
+        'appointment' => $order->appointment
+    ]);
+}
+
+/**
+ * Payment failed page
+ */
+public function paymentFailed(Request $request)
+{
+    $errorMessage = $request->query('error', 'Payment processing failed');
+    
+    return view('payment.failed', [
+        'error' => $errorMessage
+    ]);
+}
+
 
 
 
