@@ -7,267 +7,459 @@ use Illuminate\Http\Request;
 use App\Services\OpayoService;
 use App\Models\PaymentOrders as Order;
 use App\Models\Payment;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
     protected $opayo;
-    
-    public function __construct(OpayoService $opayo) 
-    { 
-        $this->opayo = $opayo; 
-    }
+    public function __construct(OpayoService $opayo) { $this->opayo = $opayo; }
 
-    /**
-     * Create Payment Order (API)
-     */
+    // 1) Create Order (API)
     public function createPaymentOrder(Request $r)
     {
-        $data = $r->validate([
-            'appointment_id' => 'required|numeric',
-            'amount' => 'required|numeric',
-            'reference' => 'nullable|string'
-        ]);
-
+        $data = $r->validate(['appointment_id'=>'required|numeric','amount'=>'required|numeric','reference'=>'nullable|string']);
+        // create local order (simplified)
         $order = Order::create([
-            'reference' => $data['reference'] ?? 'ORD-' . time(),
+            'reference' => $data['reference'] ?? 'ORD-'.time(),
             'amount' => intval(round($data['amount'] * 100)),
             'currency' => 'GBP'
         ]);
 
         $appointment = Appointment::find($data['appointment_id']);
         $appointment->payment_status = 'pending';
-        $appointment->save();
+        $appointment->update();
 
         return response()->json([
             'order_id' => $order->id,
-            'checkout_url' => url('/checkout/' . $order->id . '/' . $data['appointment_id'])
+            'checkout_url' => url('/checkout/'.$order->id.'/'.$data['appointment_id'])
         ], 201);
     }
 
-    /**
-     * Checkout page - returns Blade with merchantSessionKey
-     */
+    // 2) Checkout page (webview) — returns Blade with merchantSessionKey
     public function checkoutPage(Order $order, Appointment $appointment)
     {
-        $resp = $this->opayo->createMerchantSessionKey();
-        
+        // create merchantSessionKey server-side
+        $vendorName = config('services.opayo.vendor_name', 'sandbox');
+        $resp = $this->opayo->createMerchantSessionKey($vendorName);
         if ($resp->failed()) {
-            Log::error('MSK generation failed', [
-                'status' => $resp->status(),
-                'body' => $resp->body()
-            ]);
+            // \Log::error('MSK failed', ['status'=>$resp->status(),'body'=>$resp->body()]);
             abort(500, 'Payment provider error');
         }
-        
         $body = $resp->json();
         $merchantSessionKey = $body['merchantSessionKey'] ?? null;
-        
-        return view('checkout', compact('order', 'merchantSessionKey', 'appointment'));
+        return view('checkout', compact('order','merchantSessionKey', 'appointment'));
     }
 
-    /**
-     * Register transaction - backend receives cardIdentifier from drop-in
-     */
-    public function registerTransaction(Request $r)
+    // 3) Register transaction: backend receives cardIdentifier from drop-in
+public function registerTransaction(Request $r)
     {
-        Log::info('Opayo: Register transaction called');
+        Log::info('Opayo: Called registerTransaction');
 
+        // Validate incoming request
         $data = $r->validate([
             'appointment_id' => 'required|integer|exists:appointments,id',
-            'order_id' => 'required|integer|exists:orders,id',
+            'order_id'       => 'required|integer|exists:orders,id',
             'merchantSessionKey' => 'required|string',
-            'cardIdentifier' => 'required|string',
-            'strongCustomerAuthentication' => 'required|array'
+            'cardIdentifier'     => 'required|string'
         ]);
 
         $order = Order::findOrFail($data['order_id']);
         $appointment = Appointment::findOrFail($data['appointment_id']);
         $customer = Customer::findOrFail($appointment->customer_id);
 
-        // Validate customer fields
+        // Validate essential customer fields
         if (!$customer->postal_code || !$customer->billing_address) {
             return response()->json([
                 'status' => 422,
-                'body' => [
-                    'errors' => [[
-                        'description' => !$customer->postal_code ? 'Postal code required' : 'Billing address required',
-                        'code' => 1016
-                    ]]
-                ]
+                'body' => ['errors' => [[
+                    'description' => !$customer->postal_code ? 'Postal code not found' : 'Billing address not found',
+                    'code' => 1016
+                ]]]
             ], 422);
         }
 
-        // Validate amount
+        // Validate order amount
         if (!is_numeric($order->amount) || $order->amount <= 0) {
             return response()->json([
                 'status' => 422,
-                'body' => [
-                    'errors' => [[
-                        'description' => 'Invalid order amount',
-                        'code' => 1016
-                    ]]
-                ]
+                'body' => ['errors' => [[
+                    'description' => 'Invalid order amount',
+                    'code' => 1016
+                ]]]
             ], 422);
         }
 
         $vendorTxCode = 'order-' . $order->id . '-' . uniqid();
-        $amountInPence = (int) round(floatval($order->amount));
+        $amountInPence = (int) round(floatval($order->amount) * 100);
 
-        // Build transaction payload
+        // Prepare payload for Opayo with strongCustomerAuthentication and notificationURL
+//         $payload = [
+//     "transactionType" => "Payment",
+//     "vendorTxCode"    => $vendorTxCode,
+//     "amount"          => $amountInPence,
+//     "currency"        => "GBP",
+//     "description"     => "Order #{$order->id} payment",
+//     "paymentMethod"   => [
+//         "card" => [
+//             "merchantSessionKey" => $data['merchantSessionKey'],
+//             "cardIdentifier"     => $data['cardIdentifier'],
+//             "reusable"           => false,
+//         ],
+//     ],
+//     "customerFirstName" => $customer->name ?? "Customer",
+//     "customerLastName"  => "Name",
+//     "customerEmail"     => $customer->email ?? "unknown@example.com",
+//     "customerPhone"     => $customer->contact ?? null,
+//     "billingAddress"    => [
+//         "address1"   => $customer->billing_address,
+//         "city"       => $customer->city ?? "N/A",
+//         "postalCode" => $customer->postal_code,
+//         "country"    => "GB",
+//     ],
+//     "apply3DSecure" => "Force",
+//     "strongCustomerAuthentication" => [
+//         "notificationURL" => url('/3ds-notification'), // Must be HTTPS
+//         "browserIP" => $r->ip() ?: '1.1.1.1',
+//         "browserAcceptHeader" => $r->header('Accept') ?? '*/*',
+//         "browserUserAgent" => $r->header('User-Agent') ?? 'Mozilla/5.0',
+//         "browserJavaEnabled" => true,
+//         "browserJavascriptEnabled" => true,
+//         "browserLanguage" => substr($r->header('Accept-Language', 'en-GB'), 0, 8),
+//         "browserColorDepth" => (string)($r->input('browserColorDepth') ?? 24),
+//         "browserScreenHeight" => (string)($r->input('browserScreenHeight') ?? '1080'),
+//         "browserScreenWidth" => (string)($r->input('browserScreenWidth') ?? '1920'),
+//         "browserTZ" => (string)($r->input('browserTZ') ?? '0'),
+//         "challengeWindowSize" => "Small",
+//         "transType" => "GoodsAndServicePurchase",
+//         "threeDSRequestorAuthenticationInfo" => [
+//             "threeDSReqAuthMethod" => "01",
+//             "threeDSReqAuthTimestamp" => now()->format('YmdHis'),
+//             "threeDSReqAuthData" => "fido"
+//         ],
+//         "threeDSRequestorPriorAuthenticationInfo" => [
+//             "threeDSReqPriorAuthMethod" => "FrictionlessAuthentication", // or "ChallengeAuthentication", "AVSVerified", "OtherIssuerMethods"
+//             "threeDSReqPriorAuthTimestamp" => now()->subHours(1)->format('YmdHi'), // Format: YYYYMMDDHHmm
+//             "threeDSReqPriorRef" => "", // Should be empty string or a valid 36-char UUID if available
+//             "threeDSReqPriorAuthData" => "" // Optional: Add if you have specific auth data
+//         ],
+//         "acctID" => (string)$customer->id,
+//         "merchantRiskIndicator" => [
+//             "deliveryEmailAddress" => $customer->email ?? "noreply@example.com",
+//             "deliveryTimeframe" => "ElectronicDelivery", // or "SameDayShipping", "OvernightShipping", "TwoDayOrMoreShipping"
+//             "giftCardAmount" => "0", // Must be string, 0 for non-gift card purchases
+//             "giftCardCount" => "0", // Must be string, 0 for non-gift card purchases
+//             "preOrderDate" => "", // Format: YYYYMMDD, empty if not a pre-order
+//             "preOrderPurchaseInd" => "MerchandiseAvailable", // or "FutureAvailability"
+//             "reorderItemsInd" => "FirstTimeOrdered", // or "Reordered"
+//             "shipIndicator" => "CardholderBillingAddress" // or "OtherVerifiedAddress", "DifferentToCardholderBillingAddress", etc.
+//         ]
+//     ],
+// ];
+$callbackUrl = url('/opayo/callback'); 
+$clientIp = $r->ip();
         $payload = [
-            'transactionType' => 'Payment',
-            'vendorTxCode' => $vendorTxCode,
-            'amount' => $amountInPence,
-            'currency' => 'GBP',
-            'description' => "Order #{$order->id} payment",
-            'paymentMethod' => [
-                'card' => [
-                    'merchantSessionKey' => $data['merchantSessionKey'],
-                    'cardIdentifier' => $data['cardIdentifier'],
-                    'reusable' => false,
-                    'save' => false,
+            "transactionType" => "Payment",
+            "amount" => $amountInPence,
+            "paymentMethod" => [
+                "card" => [
+                    "merchantSessionKey" => $data['merchantSessionKey'],
+                    "cardIdentifier" => $data['cardIdentifier'],
+                    "reusable" => false,
+                    "save" => false,
                 ],
+                // "paypal" => [
+                //     "merchantSessionKey" => $data['merchantSessionKey'],
+                //     "callbackUrl" => $callbackUrl,
+                // ],
+                // "applePay" => [
+                //     "clientIpAddress" => $clientIp,
+                //     "merchantSessionKey" => $data['merchantSessionKey'],
+                //     "sessionValidationToken" => "SFGVHSBEVGAV/VDAYRR+345S",
+                //     "paymentData" => "AAAAAAABBBBBCCCCCC",
+                //     "applicationData" => "FOeVKLA...PFE4wrw==",
+                //     "displayName" => "Visa 1234",
+                // ],
+                // "googlePay" => [
+                //     "payload" => "AAAAAAABBBBBCCCCCC",
+                //     "clientIpAddress" => "10.20.30.40",
+                //     "merchantSessionKey" => "90BDF208-3C19-40AC-858B-3F4054DCD1C0",
+                // ],
+                // "ideal" => [
+                //     "merchantSessionKey" => "90BDF208-3C19-40AC-858B-3F4054DCD1C0",
+                //     "callbackUrl" => "https://www.example.com",
+                //     "languageCode" => "en",
+                // ],
+                // "alipay" => [
+                //     "merchantSessionKey" => "90BDF208-3C19-40AC-858B-3F4054DCD1C0",
+                //     "callbackUrl" => "https://www.example.com",
+                //     "languageCode" => "en",
+                //     "shopperPlatform" => "mobile",
+                // ],
+                // "wechatpay" => [
+                //     "merchantSessionKey" => "90BDF208-3C19-40AC-858B-3F4054DCD1C0",
+                //     "callbackUrl" => "https://www.example.com",
+                //     "languageCode" => "en",
+                //     "bic" => "SFRTD45",
+                // ],
+                // "eps" => [
+                //     "merchantSessionKey" => "90BDF208-3C19-40AC-858B-3F4054DCD1C0",
+                //     "callbackUrl" => "https://www.example.com",
+                //     "languageCode" => "en",
+                //     "bic" => "SFRTD45",
+                // ],
+                // "trustly" => [
+                //     "merchantSessionKey" => "90BDF208-3C19-40AC-858B-3F4054DCD1C0",
+                //     "callbackUrl" => "https://www.example.com",
+                //     "languageCode" => "en",
+                //     "clientIpAddress" => "10.20.30.40",
+                //     "beneficiaryId" => "string",
+                //     "beneficiaryName" => "string",
+                //     "beneficiaryAddress" => "string",
+                //     "beneficiaryCountryCode" => "string",
+                // ],
             ],
-            'customerFirstName' => $customer->name ?? 'Customer',
-            'customerLastName' => 'Name',
-            'customerEmail' => $customer->email ?? 'customer@example.com',
-            'customerPhone' => $customer->contact ?? null,
-            'billingAddress' => [
-                'address1' => $customer->billing_address,
-                'city' => $customer->city ?? 'London',
-                'postalCode' => $customer->postal_code,
-                'country' => 'GB',
+            "vendorTxCode" => $vendorTxCode,
+            "currency" => "GBP",
+            "description" => "Transaction",
+            "customerFirstName" => $customer->name ?? "Customer",
+            "customerLastName" => "Name",
+            "billingAddress" => [
+                "address1" => $customer->billing_address,
+                "city" => $customer->city ?? "N/A",
+                "postalCode" => $customer->postal_code,
+                "country" => "GB"
             ],
-            'apply3DSecure' => 'Force',
-            'applyAvsCvcCheck' => 'Disable',
-            'strongCustomerAuthentication' => $data['strongCustomerAuthentication']
+            "customerEmail"     => $customer->email ?? "unknown@example.com",
+            "customerPhone"     => $customer->contact ?? null,
+            // "settlementReferenceText" => "123456GRTY234",
+            // "entryMethod" => "Ecommerce",
+            // "giftAid" => false,
+            "apply3DSecure" => "Force",
+            "applyAvsCvcCheck" => "Disable",
+            // "shippingDetails" => [
+            //     "recipientFirstName" => "Sam",
+            //     "recipientLastName" => "Jones",
+            //     "shippingAddress1" => "407 St. John Street",
+            //     "shippingCity" => "London",
+            //     "shippingCountry" => "GB",
+            //     "shippingAddress2" => "string",
+            //     "shippingAddress3" => "string",
+            //     "shippingPostalCode" => "EC1V 4AB",
+            //     "shippingState" => "st",
+            // ],
+            // "referrerId" => "f9979593-a390-4069-b126-7914783fc",
+            "strongCustomerAuthentication" => [
+                "notificationURL" => route('handle3DSNotification', [], true),
+                "browserIP" => $clientIp,
+                "browserAcceptHeader" => "*/*",
+                "browserJavascriptEnabled" => false,
+                "browserUserAgent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:67.0) Gecko/20100101 Firefox/67.0",
+                "challengeWindowSize" => "Small",
+                "transType" => "GoodsAndServicePurchase",
+                "browserLanguage" => "en",
+                "browserJavaEnabled" => true,
+                "browserColorDepth" => "48",
+                "browserScreenHeight" => "1000",
+                "browserScreenWidth" => "1000",
+                // "browserTZ" => "st",
+                // "acctID" => "string",
+                "threeDSRequestorAuthenticationInfo" => [
+                    "threeDSReqAuthData"=> "User authenticated using 2FA (email + TOTP). Session ID: abc123xyz",
+                    "threeDSReqAuthMethod"=> "LoginWithThreeDSRequestorCredentials",
+                    "threeDSReqAuthTimestamp"=> "202512071234"
+                ],
+                "threeDSRequestorPriorAuthenticationInfo" => [
+                    "threeDSReqPriorAuthData" => "data",
+                    "threeDSReqPriorAuthMethod" => "FrictionlessAuthentication",
+                    "threeDSReqPriorAuthTimestamp" => "201901011645",
+                    "threeDSReqPriorRef" => "2cd842f5-da5d-40b7-8ae6-6ce61cc7b580",
+                ],
+                "acctInfo" => [
+                    "chAccAgeInd"=> "MoreThanSixtyDays",
+                    "chAccChange"=> "20180925",
+                    "chAccChangeInd"=> "MoreThanSixtyDays",
+                    "chAccDate"=> "20170115",
+                    "chAccPwChange"=> "20180926",
+                    "chAccPwChangeInd"=> "MoreThanSixtyDays",
+                    "nbPurchaseAccount"=> "5",
+                    "provisionAttemptsDay"=> "0",
+                    "txnActivityDay"=> "1",
+                    "txnActivityYear"=> "24",
+                    "paymentAccAge"=> "20180228",
+                    "paymentAccInd"=> "MoreThanSixtyDays",
+                    "shipAddressUsage"=> "20180220",
+                    "shipAddressUsageInd"=> "MoreThanSixtyDays",
+                    "shipNameIndicator"=> "FullMatch",
+                    "suspiciousAccActivity"=> "NotSuspicious"
+                ],
+                // "merchantRiskIndicator" => [
+                //     "deliveryEmailAddress" => "customer@domain.com",
+                //     "deliveryTimeframe" => "OvernightShipping",
+                //     "giftCardAmount" => "123",
+                //     "giftCardCount" => "2",
+                //     "preOrderDate" => "20200220",
+                //     "preOrderPurchaseInd" => "MerchandiseAvailable",
+                //     "reorderItemsInd" => "Reordered",
+                //     "shipIndicator" => "CardholderBillingAddress",
+                // ],
+                "threeDSExemptionIndicator"=> "TransactionRiskAnalysis",
+                "website"=> "https://hairwecut.co.uk",
+            ],
+            "customerMobilePhone"=> $customer->contact,
+            // "customerWorkPhone"=> "+441234567891",
+            "credentialType"=> [
+                "cofUsage" => "First",
+                "initiatedType" => "CIT",
+                "mitType" => "Unscheduled",
+                // "recurringExpiry" => "20200301",
+                // "recurringFrequency" => "28",
+                // "purchaseInstalData" => "6",
+            ],
+            "fiRecipient" => [
+                "accountNumber" => "1234567890",
+                "surname" => "Surname",
+                "postcode" => "EC1V 8AB",
+                "dateOfBirth" => "19900101",
+            ],
         ];
 
-        // Store initial payment
+
+        // Store initial payment attempt
         $payment = Payment::create([
-            'order_id' => $order->id,
+            'order_id'         => $order->id,
             'transaction_type' => 'Payment',
-            'vendor_tx_code' => $vendorTxCode,
-            'amount' => $amountInPence,
-            'currency' => 'GBP',
-            'raw_request' => json_encode($payload)
+            'vendor_tx_code'   => $vendorTxCode,
+            'amount'           => $order->amount,
+            'currency'         => $order->currency ?? "GBP",
+            'raw_request'      => $payload
         ]);
 
         // Call Opayo
-        Log::info('Opayo: Calling createTransaction');
+        Log::info('Opayo: Before create transaction');
         $resp = $this->opayo->createTransaction($payload);
+        Log::info('Opayo: After create transaction');
 
-        // Parse response
+        // Safely parse JSON
         $body = [];
         try {
             $body = $resp->json();
         } catch (\Exception $e) {
-            Log::error('Opayo: Failed to parse response', [
+            Log::error('Opayo: Failed to parse JSON response', [
                 'body' => $resp->body(),
                 'exception' => $e->getMessage()
             ]);
-            $body = [
-                'error' => true,
-                'message' => 'Invalid response from gateway',
-                'raw' => $resp->body()
-            ];
+            $body = ['error' => true, 'message' => 'Invalid response from payment gateway', 'raw' => $resp->body()];
         }
 
-        // Update payment record
         $payment->raw_response = $resp->body();
         $payment->status = $resp->status();
-        $payment->transaction_id = $body['transactionId'] ?? null;
 
-        // Handle 3DS status
-        if (isset($body['status']) && $body['status'] === '3DAuth') {
-            $payment->requires_3ds = true;
-            $payment->three_ds_data = json_encode($body);
-            Log::info('Opayo: 3DS authentication required', [
-                'transactionId' => $body['transactionId'] ?? 'unknown'
-            ]);
-        } elseif (isset($body['status']) && $body['status'] === 'Ok') {
-            $payment->requires_3ds = false;
+        // Update payment and order based on 3DS requirements
+        if (isset($body['3DSecure']) && $body['3DSecure']['status'] === 'Authenticated') {
             $order->update(['status' => 'paid']);
             $appointment->update(['payment_status' => 'paid']);
-            Log::info('Opayo: Payment successful without 3DS');
+            $payment->requires_3ds = false;
+        } elseif (isset($body['3DSecure']) && $body['3DSecure']['status'] === 'NotChecked') {
+            $payment->requires_3ds = true;
+            $payment->three_ds_data = $body;
         } else {
             $order->update(['status' => 'payment_failed']);
             $appointment->update(['payment_status' => 'failed']);
-            Log::warning('Opayo: Payment failed', [
-                'status' => $body['status'] ?? 'unknown'
-            ]);
         }
 
+        $appointment->save();
         $payment->save();
 
         return response()->json([
             'status' => $resp->status(),
-            'body' => $body
+            'body'   => $body
         ], $resp->status());
     }
 
     /**
-     * Handle 3DS notification callback from bank
+     * Handle 3DS notification callback from the bank
      */
     public function handle3DSNotification(Request $request)
     {
-        Log::info('Opayo: 3DS Notification received', $request->all());
+        // Log raw input for debugging
+        Log::info('Opayo: 3DS Notification - Raw Input', [
+            'all' => $request->all(),
+            'method' => $request->method(),
+            'url' => $request->fullUrl(),
+            'ip' => $request->ip()
+        ]);
 
+        // Validate input from bank
         $validated = $request->validate([
-            'cres' => 'required|string',
+            'cres' => 'required|string',  // Lowercase 'cres' from ACS
             'threeDSSessionData' => 'required|string'
         ]);
 
+        // Decode session data
         $sessionData = base64_decode($validated['threeDSSessionData']);
-        Log::info('Opayo: Decoded session data', ['data' => $sessionData]);
+        Log::info('Opayo: Session data decoded', ['sessionData' => $sessionData]);
 
+        // Extract order ID (format: "order_123")
         preg_match('/order_(\d+)/', $sessionData, $matches);
         $orderId = $matches[1] ?? null;
 
         if (!$orderId) {
-            Log::error('Opayo: Invalid session data');
+            Log::error('Opayo: Invalid session data format', [
+                'sessionData' => $sessionData,
+                'expected_format' => 'order_{id}'
+            ]);
             return $this->redirectToFailure('Invalid session data');
         }
 
+        // Find payment record by order_id
         $payment = Payment::where('order_id', $orderId)
             ->whereNotNull('transaction_id')
             ->latest()
             ->first();
 
         if (!$payment) {
-            Log::error('Opayo: Payment not found', ['orderId' => $orderId]);
+            Log::error('Opayo: Payment record not found', [
+                'orderId' => $orderId
+            ]);
             return $this->redirectToFailure('Payment record not found');
         }
 
-        Log::info('Opayo: Submitting cRes', [
+        Log::info('Opayo: Submitting cRes to gateway', [
             'transactionId' => $payment->transaction_id,
-            'orderId' => $orderId
+            'orderId' => $orderId,
+            'cres_length' => strlen($validated['cres'])
         ]);
 
-        // Use OpayoService method
-        $response = $this->opayo->submit3DSecureChallenge(
+        // Submit cRes to Opayo
+        $response = $this->submit3DSecureChallenge(
             $payment->transaction_id,
             $validated['cres']
         );
 
-        if (!$response || !$response->successful()) {
-            Log::error('Opayo: 3DS challenge failed');
+        if (!$response) {
+            Log::error('Opayo: Failed to submit 3DS challenge');
             return $this->redirectToFailure('Unable to complete authentication');
         }
 
         $body = $response->json();
         
-        Log::info('Opayo: 3DS response', [
-            'status' => $body['status'] ?? 'unknown'
+        Log::info('Opayo: 3DS Challenge response received', [
+            'status' => $body['status'] ?? 'unknown',
+            'statusCode' => $body['statusCode'] ?? 'unknown',
+            'statusDetail' => $body['statusDetail'] ?? ''
         ]);
 
-        $payment->raw_response = ($payment->raw_response ?? '') . "\n3DS: " . json_encode($body);
+        // Update payment record
+        $payment->raw_response = ($payment->raw_response ?? '') . "\n3DS Challenge: " . json_encode($body);
         
+        // Check authentication result
         if (isset($body['status']) && $body['status'] === 'Ok') {
+            // Success!
             $payment->status = 'completed';
             $payment->save();
             
+            // Update order and appointment
             $order = $payment->order;
             $order->update(['status' => 'paid']);
             
@@ -275,103 +467,201 @@ class PaymentController extends Controller
                 $order->appointment->update(['payment_status' => 'paid']);
             }
             
-            Log::info('Opayo: Payment successful');
+            Log::info('Opayo: Payment successful', [
+                'orderId' => $orderId,
+                'transactionId' => $payment->transaction_id,
+                'amount' => $order->amount
+            ]);
+            
             return $this->redirectToSuccess($orderId);
         } else {
+            // Failed authentication
             $payment->status = '3ds_failed';
             $payment->save();
             
-            Log::warning('Opayo: 3DS failed');
-            return $this->redirectToFailure($body['statusDetail'] ?? 'Authentication failed');
+            $statusDetail = $body['statusDetail'] ?? 'Authentication failed';
+            
+            Log::warning('Opayo: 3DS authentication failed', [
+                'orderId' => $orderId,
+                'status' => $body['status'] ?? 'unknown',
+                'statusDetail' => $statusDetail
+            ]);
+            
+            return $this->redirectToFailure($statusDetail);
         }
     }
 
     /**
-     * Payment success page
+     * Submit 3DS challenge response to Opayo
      */
-    public function paymentSuccess(Request $request)
+    private function submit3DSecureChallenge($transactionId, $cRes)
     {
-        $orderId = $request->query('order');
-        if (!$orderId) return redirect('/');
+        $integrationKey = config('services.opayo.integration_key');
+        $integrationPassword = config('services.opayo.integration_password');
+        $endpoint = config('services.opayo.endpoint');
         
-        $order = Order::with('appointment')->find($orderId);
-        if (!$order) return redirect('/');
+        $authString = base64_encode("{$integrationKey}:{$integrationPassword}");
         
-        return view('payment.success', [
-            'order' => $order,
-            'appointment' => $order->appointment
-        ]);
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => "Basic {$authString}",
+                'Content-Type' => 'application/json',
+            ])->post("{$endpoint}/api/v1/transactions/{$transactionId}/3d-secure-challenge", [
+                'cRes' => $cRes  // IMPORTANT: Capital R
+            ]);
+
+            Log::info('Opayo: 3DS challenge API response', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
+            return $response;
+            
+        } catch (\Exception $e) {
+            Log::error('Opayo: 3DS challenge submission exception', [
+                'transactionId' => $transactionId,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
     }
 
     /**
-     * Payment failed page
-     */
-    public function paymentFailed(Request $request)
-    {
-        return view('payment.failed', [
-            'error' => $request->query('error', 'Payment failed')
-        ]);
-    }
-
-    /**
-     * Redirect helpers
+     * Redirect to success page with HTML
      */
     private function redirectToSuccess($orderId)
     {
-        $url = route('payment.success', ['order' => $orderId]);
+        $url = url("/payment/success?order={$orderId}");
+        
         return response()->make("<!DOCTYPE html>
-<html><head><meta charset='utf-8'><title>Success</title>
-<meta http-equiv='refresh' content='1;url={$url}'>
-<style>body{font-family:sans-serif;text-align:center;padding:50px;background:#f0f9f0;}
-.success{color:#28a745;font-size:24px;}</style></head>
-<body><div class='success'>✓ Payment Successful!</div><p>Redirecting...</p>
-<script>setTimeout(()=>window.location.href='{$url}',1000);</script></body></html>", 200)
-        ->header('Content-Type', 'text/html');
-    }
-
-    private function redirectToFailure($message = 'Payment failed')
-    {
-        $url = route('payment.failed', ['error' => $message]);
-        return response()->make("<!DOCTYPE html>
-<html><head><meta charset='utf-8'><title>Failed</title>
-<meta http-equiv='refresh' content='3;url={$url}'>
-<style>body{font-family:sans-serif;text-align:center;padding:50px;background:#fff5f5;}
-.error{color:#dc3545;font-size:24px;}</style></head>
-<body><div class='error'>✗ Payment Failed</div><p>" . htmlspecialchars($message) . "</p>
-<script>setTimeout(()=>window.location.href='{$url}',3000);</script></body></html>", 200)
-        ->header('Content-Type', 'text/html');
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Payment Successful</title>
+    <meta http-equiv='refresh' content='1;url={$url}'>
+    <style>
+        body{font-family:sans-serif;text-align:center;padding:50px;background:#f0f9f0;}
+        .success{color:#28a745;font-size:24px;margin:20px 0;}
+        .spinner{border:4px solid #f3f3f3;border-top:4px solid #28a745;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:30px auto;}
+        @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+    </style>
+</head>
+<body>
+    <div class='success'>✓ Payment Successful!</div>
+    <div class='spinner'></div>
+    <p>Redirecting you back to your account...</p>
+    <script>
+        setTimeout(function(){ window.location.href = '{$url}'; }, 1000);
+    </script>
+</body>
+</html>", 200)->header('Content-Type', 'text/html');
     }
 
     /**
-     * Refund
+     * Redirect to failure page with HTML
      */
+    private function redirectToFailure($message = 'Payment failed')
+    {
+        $url = url("/payment/failed?error=" . urlencode($message));
+        
+        return response()->make("<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Payment Failed</title>
+    <meta http-equiv='refresh' content='3;url={$url}'>
+    <style>
+        body{font-family:sans-serif;text-align:center;padding:50px;background:#fff5f5;}
+        .error{color:#dc3545;font-size:24px;margin:20px 0;}
+        .message{color:#666;font-size:16px;margin:20px 0;}
+    </style>
+</head>
+<body>
+    <div class='error'>✗ Payment Failed</div>
+    <div class='message'>" . htmlspecialchars($message) . "</div>
+    <p>Redirecting you back...</p>
+    <script>
+        setTimeout(function(){ window.location.href = '{$url}'; }, 3000);
+    </script>
+</body>
+</html>", 200)->header('Content-Type', 'text/html');
+    }
+
+    public function paymentSuccess(Request $request)
+{
+    $orderId = $request->query('order');
+    
+    if (!$orderId) {
+        return redirect('/')->with('error', 'Invalid payment confirmation');
+    }
+    
+    $order = Order::with('appointment')->find($orderId);
+    
+    if (!$order) {
+        return redirect('/')->with('error', 'Order not found');
+    }
+    
+    return view('payment.success', [
+        'order' => $order,
+        'appointment' => $order->appointment
+    ]);
+}
+
+/**
+ * Payment failed page
+ */
+public function paymentFailed(Request $request)
+{
+    $errorMessage = $request->query('error', 'Payment processing failed');
+    
+    return view('payment.failed', [
+        'error' => $errorMessage
+    ]);
+}
+
+
+
+
+
+
+    // 4) Order status
+    public function orderStatus(Order $order)
+    {
+        return response()->json([
+            'id' => $order->id,
+            'status' => $order->status,
+            'payments' => $order->payments()->latest()->get()
+        ]);
+    }
+
+    // 5) Refund
     public function refund(Request $r, Order $order)
     {
-        $this->validate($r, ['amount' => 'required|numeric']);
+        $this->validate($r, ['amount'=>'required|numeric']);
         $amountPence = intval(round($r->amount * 100));
 
+        // find last successful transaction id
         $last = $order->payments()->whereNotNull('transaction_id')->latest()->first();
-        if (!$last) {
-            return response()->json(['error' => 'No transaction to refund'], 422);
-        }
+        if (!$last) return response()->json(['error'=>'No transaction to refund'], 422);
 
         $payload = [
             'transactionType' => 'Refund',
             'relatedTransactionId' => $last->transaction_id,
-            'vendorTxCode' => 'refund-' . $order->id . '-' . uniqid(),
+            'vendorTxCode' => 'refund-'.$order->id.'-'.uniqid(),
             'amount' => $amountPence,
             'currency' => $order->currency
         ];
 
         $resp = $this->opayo->createTransaction($payload);
 
+        // store refund as a Payment record
         $refund = Payment::create([
             'order_id' => $order->id,
             'transaction_type' => 'Refund',
             'vendor_tx_code' => $payload['vendorTxCode'],
             'amount' => $amountPence,
             'currency' => $order->currency,
-            'raw_request' => json_encode($payload),
+            'raw_request' => $payload,
             'raw_response' => $resp->body(),
             'status' => $resp->json('status') ?? $resp->status(),
             'transaction_id' => $resp->json('transactionId') ?? null
@@ -381,21 +671,22 @@ class PaymentController extends Controller
             $order->update(['status' => 'refunded']);
         }
 
-        return response()->json([
-            'status' => $resp->status(),
-            'body' => $resp->json()
-        ], $resp->status());
+        return response()->json(['status'=>$resp->status(),'body'=>$resp->json()], $resp->status());
     }
 
-    /**
-     * Order status
-     */
-    public function orderStatus(Order $order)
-    {
-        return response()->json([
-            'id' => $order->id,
-            'status' => $order->status,
-            'payments' => $order->payments()->latest()->get()
-        ]);
+    // Optional return view after payment
+    public function paymentReturn(Request $r) {
+        return view('payment-return', ['query'=>$r->all()]);
     }
+
+    public function handleCallback(Request $request)
+{
+    // 1. Verify the payload / signature if provided
+    // 2. Update your order/payment status
+    // 3. Return a 200 OK response
+    return response()->json(['status' => 'success']);
 }
+
+    
+}
+

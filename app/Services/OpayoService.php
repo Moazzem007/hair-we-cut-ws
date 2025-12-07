@@ -7,15 +7,15 @@ use Illuminate\Http\Client\Response;
 
 class OpayoService
 {
-    protected string $endpoint;
+    protected string $baseUrl;
     protected string $integrationKey;
     protected string $integrationPassword;
     protected string $vendorName;
 
     public function __construct()
     {
-        // Load configuration - FIXED: use 'endpoint' not 'base_url'
-        $this->endpoint = rtrim(config('services.opayo.endpoint', 'https://sandbox.opayo.eu.elavon.com'), '/');
+        // Load configuration
+        $this->baseUrl = config('services.opayo.base_url', 'https://sandbox.opayo.eu.elavon.com/api/v1');
         $this->integrationKey = config('services.opayo.integration_key');
         $this->integrationPassword = config('services.opayo.integration_password');
         $this->vendorName = config('services.opayo.vendor_name');
@@ -24,14 +24,6 @@ class OpayoService
         if (empty($this->integrationKey) || empty($this->integrationPassword)) {
             throw new \RuntimeException('Opayo credentials not configured. Check your .env file.');
         }
-    }
-
-    /**
-     * Get full API URL
-     */
-    private function getApiUrl(string $path): string
-    {
-        return $this->endpoint . '/api/v1' . $path;
     }
 
     /**
@@ -50,6 +42,9 @@ class OpayoService
 
     /**
      * Create Merchant Session Key
+     *
+     * @param string|null $vendorName Override default vendor name
+     * @return Response
      */
     public function createMerchantSessionKey(?string $vendorName = null): Response
     {
@@ -59,18 +54,18 @@ class OpayoService
             throw new \InvalidArgumentException('Vendor name is required');
         }
 
-        $url = $this->getApiUrl('/merchant-session-keys');
+        $url = $this->baseUrl . '/merchant-session-keys';
 
-        Log::info('Opayo: Creating MSK', ['vendor' => $vendor, 'url' => $url]);
+        Log::info('Opayo: Creating Merchant Session Key', ['vendor' => $vendor]);
 
         $response = $this->client()->post($url, [
             'vendorName' => $vendor
         ]);
 
         if ($response->successful()) {
-            Log::info('Opayo: MSK created successfully');
+            Log::info('Opayo: Merchant Session Key created successfully');
         } else {
-            Log::error('Opayo: MSK creation failed', [
+            Log::error('Opayo: Failed to create Merchant Session Key', [
                 'status' => $response->status(),
                 'body' => $response->json()
             ]);
@@ -81,13 +76,18 @@ class OpayoService
 
     /**
      * Create Card Identifier
+     *
+     * @param string $merchantSessionKey
+     * @param array $cardDetails
+     * @return Response
      */
     public function createCardIdentifier(string $merchantSessionKey, array $cardDetails): Response
     {
-        $url = $this->getApiUrl('/card-identifiers');
+        $url = $this->baseUrl . '/card-identifiers';
 
         Log::info('Opayo: Creating Card Identifier');
 
+        // Use merchant session key as Bearer token for card identifier creation
         $response = Http::withToken($merchantSessionKey)
             ->withHeaders([
                 'Content-Type' => 'application/json',
@@ -99,9 +99,9 @@ class OpayoService
             ]);
 
         if ($response->successful()) {
-            Log::info('Opayo: Card Identifier created');
+            Log::info('Opayo: Card Identifier created successfully');
         } else {
-            Log::error('Opayo: Card Identifier failed', [
+            Log::error('Opayo: Failed to create Card Identifier', [
                 'status' => $response->status(),
                 'body' => $response->json()
             ]);
@@ -111,47 +111,54 @@ class OpayoService
     }
 
     /**
-     * Create Transaction
+     * Create Transaction (Payment / Deferred / Refund / etc)
+     *
+     * @param array $payload
+     * @return Response
      */
-    public function createTransaction(array $payload): Response
-    {
-        $url = $this->getApiUrl('/transactions');
+    public function createTransaction(array $payload): \Illuminate\Http\Client\Response
+{
+    $url = $this->baseUrl . '/transactions';
 
-        Log::info('Opayo: Creating transaction', [
-            'url' => $url,
-            'transactionType' => $payload['transactionType'] ?? 'unknown',
-            'vendorTxCode' => $payload['vendorTxCode'] ?? 'unknown'
+    Log::info('Opayo: Creating transaction', [
+        'transactionType' => $payload['transactionType'] ?? 'unknown',
+        'vendorTxCode'    => $payload['vendorTxCode'] ?? 'unknown'
+    ]);
+
+    $response = $this->client()->post($url, $payload);
+
+    if ($response->successful()) {
+        Log::info('Opayo: Transaction created successfully', [
+            'transactionId' => $response->json('transactionId')
         ]);
-
-        $response = $this->client()->post($url, $payload);
-
-        if ($response->successful()) {
-            Log::info('Opayo: Transaction created', [
-                'transactionId' => $response->json('transactionId')
-            ]);
-        } else {
-            $body = [];
-            try {
-                $body = $response->json();
-            } catch (\Exception $e) {
-                $body = ['raw' => $response->body()];
-            }
-
-            Log::error('Opayo: Transaction failed', [
-                'status' => $response->status(),
-                'body' => $body
-            ]);
+    } else {
+        // Safely log body in case it's not JSON
+        $body = [];
+        try {
+            $body = $response->json();
+        } catch (\Exception $e) {
+            $body = ['raw' => $response->body()];
         }
 
-        return $response;
+        Log::error('Opayo: Transaction failed', [
+            'status' => $response->status(),
+            'body'   => $body
+        ]);
     }
+
+    return $response;
+}
+
 
     /**
      * Retrieve a transaction
+     *
+     * @param string $transactionId
+     * @return Response
      */
     public function retrieveTransaction(string $transactionId): Response
     {
-        $url = $this->getApiUrl("/transactions/{$transactionId}");
+        $url = $this->baseUrl . '/transactions/' . $transactionId;
 
         Log::info('Opayo: Retrieving transaction', ['transactionId' => $transactionId]);
 
@@ -169,37 +176,31 @@ class OpayoService
     }
 
     /**
-     * Submit 3D Secure Challenge
+     * Handle 3D Secure Challenge
+     *
+     * @param string $transactionId
+     * @param string $cRes
+     * @return Response
      */
-    public function submit3DSecureChallenge(string $transactionId, string $cRes): Response
+    public function submit3DSecureChallenge(string $transactionId, string $cRes)
     {
-        $url = $this->getApiUrl("/transactions/{$transactionId}/3d-secure-challenge");
-        
-        Log::info('Opayo: Submitting 3DS challenge', [
-            'url' => $url,
-            'transactionId' => $transactionId
-        ]);
-
-        $response = $this->client()->post($url, [
+        $url = $this->baseUrl . "/transactions/{$transactionId}/3d-secure-challenge";
+        return $this->client()->post($url, [
             'cRes' => $cRes
         ]);
-
-        if (!$response->successful()) {
-            Log::error('Opayo: 3DS challenge failed', [
-                'status' => $response->status(),
-                'body' => $response->body()
-            ]);
-        }
-
-        return $response;
     }
 
     /**
      * Create an instruction (void, release, abort, cancel)
+     *
+     * @param string $transactionId
+     * @param string $instructionType
+     * @param int|null $amount For release instructions
+     * @return Response
      */
     public function createInstruction(string $transactionId, string $instructionType, ?int $amount = null): Response
     {
-        $url = $this->getApiUrl("/transactions/{$transactionId}/instructions");
+        $url = $this->baseUrl . '/transactions/' . $transactionId . '/instructions';
 
         $payload = ['instructionType' => $instructionType];
 
