@@ -116,7 +116,7 @@
     };
 
     try {
-        const result = await checkout.handle3DS(threeDSData, async (cRes) => {
+        const result = await checkout.threeDS(threeDSData, async (cRes) => {
             debug("cRes from 3DS challenge:", cRes);
             
             try {
