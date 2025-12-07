@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\Models\Payment;
@@ -118,43 +119,42 @@ class OpayoService
      * @return Response
      */
     public function createTransaction(array $payload): \Illuminate\Http\Client\Response
-{
-    $url = $this->baseUrl . '/transactions';
+    {
+        $url = $this->baseUrl . '/transactions';
 
-    Log::info('Opayo: Creating transaction', [
-        'transactionType' => $payload['transactionType'] ?? 'unknown',
-        'vendorTxCode'    => $payload['vendorTxCode'] ?? 'unknown'
-    ]);
-
-
-    $response = $this->client()->post($url, $payload);
-
-    if ($response->successful()) {
-        Log::info('Opayo: Transaction created successfully', [
-            'transactionId' => $response->json('transactionId')
+        Log::info('Opayo: Creating transaction', [
+            'transactionType' => $payload['transactionType'] ?? 'unknown',
+            'vendorTxCode'    => $payload['vendorTxCode'] ?? 'unknown'
         ]);
-        
-        // Update transaction id in payment record
-        Payment::where('vendor_tx_code', $payload['vendorTxCode'])
-            ->update(['transaction_id' => $response->json('transactionId')]);
 
-    } else {
-        // Safely log body in case it's not JSON
-        $body = [];
-        try {
-            $body = $response->json();
-        } catch (\Exception $e) {
-            $body = ['raw' => $response->body()];
+
+        $response = $this->client()->post($url, $payload);
+
+        if ($response->successful()) {
+            Log::info('Opayo: Transaction created successfully', [
+                'transactionId' => $response->json('transactionId')
+            ]);
+
+            // Update transaction id in payment record
+            Payment::where('vendor_tx_code', $payload['vendorTxCode'])
+                ->update(['transaction_id' => $response->json('transactionId')]);
+        } else {
+            // Safely log body in case it's not JSON
+            $body = [];
+            try {
+                $body = $response->json();
+            } catch (\Exception $e) {
+                $body = ['raw' => $response->body()];
+            }
+
+            Log::error('Opayo: Transaction failed', [
+                'status' => $response->status(),
+                'body'   => $body
+            ]);
         }
 
-        Log::error('Opayo: Transaction failed', [
-            'status' => $response->status(),
-            'body'   => $body
-        ]);
+        return $response;
     }
-
-    return $response;
-}
 
 
     /**

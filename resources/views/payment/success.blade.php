@@ -138,7 +138,7 @@
             </div>
         </div>
         
-        <a href="{{ url('/dashboard') }}" class="btn">Go to Dashboard</a>
+        <a href="" class="btn">Back to app</a>
     </div>
 </body>
 </html>

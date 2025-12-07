@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
@@ -7,21 +8,25 @@ use Illuminate\Http\Request;
 use App\Services\OpayoService;
 use App\Models\PaymentOrders as Order;
 use App\Models\Payment;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
     protected $opayo;
-    public function __construct(OpayoService $opayo) { $this->opayo = $opayo; }
+    public function __construct(OpayoService $opayo)
+    {
+        $this->opayo = $opayo;
+    }
 
     // 1) Create Order (API)
     public function createPaymentOrder(Request $r)
     {
-        $data = $r->validate(['appointment_id'=>'required|numeric','amount'=>'required|numeric','reference'=>'nullable|string']);
+        $data = $r->validate(['appointment_id' => 'required|numeric', 'amount' => 'required|numeric', 'reference' => 'nullable|string']);
         // create local order (simplified)
         $order = Order::create([
-            'reference' => $data['reference'] ?? 'ORD-'.time(),
+            'reference' => $data['reference'] ?? 'ORD-' . time(),
             'amount' => intval(round($data['amount'] * 100)),
             'currency' => 'GBP'
         ]);
@@ -32,7 +37,7 @@ class PaymentController extends Controller
 
         return response()->json([
             'order_id' => $order->id,
-            'checkout_url' => url('/checkout/'.$order->id.'/'.$data['appointment_id'])
+            'checkout_url' => url('/checkout/' . $order->id . '/' . $data['appointment_id'])
         ], 201);
     }
 
@@ -48,11 +53,11 @@ class PaymentController extends Controller
         }
         $body = $resp->json();
         $merchantSessionKey = $body['merchantSessionKey'] ?? null;
-        return view('checkout', compact('order','merchantSessionKey', 'appointment'));
+        return view('checkout', compact('order', 'merchantSessionKey', 'appointment'));
     }
 
     // 3) Register transaction: backend receives cardIdentifier from drop-in
-public function registerTransaction(Request $r)
+    public function registerTransaction(Request $r)
     {
         Log::info('Opayo: Called registerTransaction');
 
@@ -92,72 +97,10 @@ public function registerTransaction(Request $r)
 
         $vendorTxCode = 'order-' . $order->id . '-' . uniqid();
         $amountInPence = (int) round(floatval($order->amount) * 100);
+        $userAgent = request()->header('User-Agent');
 
-        // Prepare payload for Opayo with strongCustomerAuthentication and notificationURL
-//         $payload = [
-//     "transactionType" => "Payment",
-//     "vendorTxCode"    => $vendorTxCode,
-//     "amount"          => $amountInPence,
-//     "currency"        => "GBP",
-//     "description"     => "Order #{$order->id} payment",
-//     "paymentMethod"   => [
-//         "card" => [
-//             "merchantSessionKey" => $data['merchantSessionKey'],
-//             "cardIdentifier"     => $data['cardIdentifier'],
-//             "reusable"           => false,
-//         ],
-//     ],
-//     "customerFirstName" => $customer->name ?? "Customer",
-//     "customerLastName"  => "Name",
-//     "customerEmail"     => $customer->email ?? "unknown@example.com",
-//     "customerPhone"     => $customer->contact ?? null,
-//     "billingAddress"    => [
-//         "address1"   => $customer->billing_address,
-//         "city"       => $customer->city ?? "N/A",
-//         "postalCode" => $customer->postal_code,
-//         "country"    => "GB",
-//     ],
-//     "apply3DSecure" => "Force",
-//     "strongCustomerAuthentication" => [
-//         "notificationURL" => url('/3ds-notification'), // Must be HTTPS
-//         "browserIP" => $r->ip() ?: '1.1.1.1',
-//         "browserAcceptHeader" => $r->header('Accept') ?? '*/*',
-//         "browserUserAgent" => $r->header('User-Agent') ?? 'Mozilla/5.0',
-//         "browserJavaEnabled" => true,
-//         "browserJavascriptEnabled" => true,
-//         "browserLanguage" => substr($r->header('Accept-Language', 'en-GB'), 0, 8),
-//         "browserColorDepth" => (string)($r->input('browserColorDepth') ?? 24),
-//         "browserScreenHeight" => (string)($r->input('browserScreenHeight') ?? '1080'),
-//         "browserScreenWidth" => (string)($r->input('browserScreenWidth') ?? '1920'),
-//         "browserTZ" => (string)($r->input('browserTZ') ?? '0'),
-//         "challengeWindowSize" => "Small",
-//         "transType" => "GoodsAndServicePurchase",
-//         "threeDSRequestorAuthenticationInfo" => [
-//             "threeDSReqAuthMethod" => "01",
-//             "threeDSReqAuthTimestamp" => now()->format('YmdHis'),
-//             "threeDSReqAuthData" => "fido"
-//         ],
-//         "threeDSRequestorPriorAuthenticationInfo" => [
-//             "threeDSReqPriorAuthMethod" => "FrictionlessAuthentication", // or "ChallengeAuthentication", "AVSVerified", "OtherIssuerMethods"
-//             "threeDSReqPriorAuthTimestamp" => now()->subHours(1)->format('YmdHi'), // Format: YYYYMMDDHHmm
-//             "threeDSReqPriorRef" => "", // Should be empty string or a valid 36-char UUID if available
-//             "threeDSReqPriorAuthData" => "" // Optional: Add if you have specific auth data
-//         ],
-//         "acctID" => (string)$customer->id,
-//         "merchantRiskIndicator" => [
-//             "deliveryEmailAddress" => $customer->email ?? "noreply@example.com",
-//             "deliveryTimeframe" => "ElectronicDelivery", // or "SameDayShipping", "OvernightShipping", "TwoDayOrMoreShipping"
-//             "giftCardAmount" => "0", // Must be string, 0 for non-gift card purchases
-//             "giftCardCount" => "0", // Must be string, 0 for non-gift card purchases
-//             "preOrderDate" => "", // Format: YYYYMMDD, empty if not a pre-order
-//             "preOrderPurchaseInd" => "MerchandiseAvailable", // or "FutureAvailability"
-//             "reorderItemsInd" => "FirstTimeOrdered", // or "Reordered"
-//             "shipIndicator" => "CardholderBillingAddress" // or "OtherVerifiedAddress", "DifferentToCardholderBillingAddress", etc.
-//         ]
-//     ],
-// ];
-$callbackUrl = url('/opayo/callback'); 
-$clientIp = $r->ip();
+        // $callbackUrl = url('/opayo/callback');
+        $clientIp = $r->ip();
         $payload = [
             "transactionType" => "Payment",
             "amount" => $amountInPence,
@@ -254,44 +197,45 @@ $clientIp = $r->ip();
                 "browserIP" => $clientIp,
                 "browserAcceptHeader" => "*/*",
                 "browserJavascriptEnabled" => false,
-                "browserUserAgent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:67.0) Gecko/20100101 Firefox/67.0",
+                "browserUserAgent" => $userAgent,
                 "challengeWindowSize" => "Small",
                 "transType" => "GoodsAndServicePurchase",
-                "browserLanguage" => "en",
+                "browserLanguage" => "en-US",
                 "browserJavaEnabled" => true,
                 "browserColorDepth" => "48",
-                "browserScreenHeight" => "1000",
-                "browserScreenWidth" => "1000",
+                "browserScreenHeight" => "700",
+                "browserScreenWidth" => "500",
                 // "browserTZ" => "st",
                 // "acctID" => "string",
                 "threeDSRequestorAuthenticationInfo" => [
-                    "threeDSReqAuthData"=> "User authenticated using 2FA (email + TOTP). Session ID: abc123xyz",
-                    "threeDSReqAuthMethod"=> "LoginWithThreeDSRequestorCredentials",
-                    "threeDSReqAuthTimestamp"=> "202512071234"
+                    "threeDSReqAuthData" => "User authenticated using 2FA (email + TOTP). Session ID: abc123xyz",
+                    "threeDSReqAuthMethod" => "LoginWithThreeDSRequestorCredentials",
+                    "threeDSReqAuthTimestamp" => Carbon::now('UTC')->format('YmdHi'),
                 ],
-                "threeDSRequestorPriorAuthenticationInfo" => [
-                    "threeDSReqPriorAuthData" => "data",
-                    "threeDSReqPriorAuthMethod" => "FrictionlessAuthentication",
-                    "threeDSReqPriorAuthTimestamp" => "201901011645",
-                    "threeDSReqPriorRef" => "2cd842f5-da5d-40b7-8ae6-6ce61cc7b580",
-                ],
+                // might be required
+                // "threeDSRequestorPriorAuthenticationInfo" => [
+                //     "threeDSReqPriorAuthData" => "data",
+                //     "threeDSReqPriorAuthMethod" => "FrictionlessAuthentication",
+                //     "threeDSReqPriorAuthTimestamp" => Carbon::now('UTC')->format('YmdHi'),
+                //     "threeDSReqPriorRef" => "2cd842f5-da5d-40b7-8ae6-6ce61cc7b580",
+                // ],
                 "acctInfo" => [
-                    "chAccAgeInd"=> "MoreThanSixtyDays",
-                    "chAccChange"=> "20180925",
-                    "chAccChangeInd"=> "MoreThanSixtyDays",
-                    "chAccDate"=> "20170115",
-                    "chAccPwChange"=> "20180926",
-                    "chAccPwChangeInd"=> "MoreThanSixtyDays",
-                    "nbPurchaseAccount"=> "5",
-                    "provisionAttemptsDay"=> "0",
-                    "txnActivityDay"=> "1",
-                    "txnActivityYear"=> "24",
-                    "paymentAccAge"=> "20180228",
-                    "paymentAccInd"=> "MoreThanSixtyDays",
-                    "shipAddressUsage"=> "20180220",
-                    "shipAddressUsageInd"=> "MoreThanSixtyDays",
-                    "shipNameIndicator"=> "FullMatch",
-                    "suspiciousAccActivity"=> "NotSuspicious"
+                    "chAccAgeInd" => "GuestCheckout",
+                    "chAccChange" => Carbon::now('UTC')->format('Ymd'),
+                    "chAccChangeInd" => "MoreThanSixtyDays",
+                    "chAccDate" => Carbon::now('UTC')->format('Ymd'),
+                    "chAccPwChange" => Carbon::now('UTC')->format('Ymd'),
+                    "chAccPwChangeInd" => "MoreThanSixtyDays",
+                    "nbPurchaseAccount" => "5",
+                    "provisionAttemptsDay" => "0",
+                    "txnActivityDay" => "0",
+                    "txnActivityYear" => "5",
+                    "paymentAccAge" => Carbon::now('UTC')->format('Ymd'),
+                    "paymentAccInd" => "GuestCheckout",
+                    "shipAddressUsage" => Carbon::now('UTC')->format('Ymd'),
+                    "shipAddressUsageInd" => "MoreThanSixtyDays",
+                    "shipNameIndicator" => "FullMatch",
+                    "suspiciousAccActivity" => "NotSuspicious"
                 ],
                 // "merchantRiskIndicator" => [
                 //     "deliveryEmailAddress" => "customer@domain.com",
@@ -303,12 +247,12 @@ $clientIp = $r->ip();
                 //     "reorderItemsInd" => "Reordered",
                 //     "shipIndicator" => "CardholderBillingAddress",
                 // ],
-                "threeDSExemptionIndicator"=> "TransactionRiskAnalysis",
-                "website"=> "https://hairwecut.co.uk",
+                "threeDSExemptionIndicator" => "TransactionRiskAnalysis",
+                "website" => "https://hairwecut.co.uk",
             ],
-            "customerMobilePhone"=> $customer->contact,
+            "customerMobilePhone" => $customer->contact,
             // "customerWorkPhone"=> "+441234567891",
-            "credentialType"=> [
+            "credentialType" => [
                 "cofUsage" => "First",
                 "initiatedType" => "CIT",
                 "mitType" => "Unscheduled",
@@ -443,7 +387,7 @@ $clientIp = $r->ip();
         }
 
         $body = $response->json();
-        
+
         Log::info('Opayo: 3DS Challenge response received', [
             'status' => $body['status'] ?? 'unknown',
             'statusCode' => $body['statusCode'] ?? 'unknown',
@@ -452,41 +396,41 @@ $clientIp = $r->ip();
 
         // Update payment record
         $payment->raw_response = ($payment->raw_response ?? '') . "\n3DS Challenge: " . json_encode($body);
-        
+
         // Check authentication result
         if (isset($body['status']) && $body['status'] === 'Ok') {
             // Success!
             $payment->status = 'completed';
             $payment->save();
-            
+
             // Update order and appointment
             $order = $payment->order;
             $order->update(['status' => 'paid']);
-            
+
             if ($order->appointment) {
                 $order->appointment->update(['payment_status' => 'paid']);
             }
-            
+
             Log::info('Opayo: Payment successful', [
                 'orderId' => $orderId,
                 'transactionId' => $payment->transaction_id,
                 'amount' => $order->amount
             ]);
-            
+
             return $this->redirectToSuccess($orderId);
         } else {
             // Failed authentication
             $payment->status = '3ds_failed';
             $payment->save();
-            
+
             $statusDetail = $body['statusDetail'] ?? 'Authentication failed';
-            
+
             Log::warning('Opayo: 3DS authentication failed', [
                 'orderId' => $orderId,
                 'status' => $body['status'] ?? 'unknown',
                 'statusDetail' => $statusDetail
             ]);
-            
+
             return $this->redirectToFailure($statusDetail);
         }
     }
@@ -499,9 +443,9 @@ $clientIp = $r->ip();
         $integrationKey = config('services.opayo.integration_key');
         $integrationPassword = config('services.opayo.integration_password');
         $endpoint = config('services.opayo.endpoint');
-        
+
         $authString = base64_encode("{$integrationKey}:{$integrationPassword}");
-        
+
         try {
             $response = Http::withHeaders([
                 'Authorization' => "Basic {$authString}",
@@ -516,7 +460,6 @@ $clientIp = $r->ip();
             ]);
 
             return $response;
-            
         } catch (\Exception $e) {
             Log::error('Opayo: 3DS challenge submission exception', [
                 'transactionId' => $transactionId,
@@ -532,7 +475,7 @@ $clientIp = $r->ip();
     private function redirectToSuccess($orderId)
     {
         $url = url("/payment/success?order={$orderId}");
-        
+
         return response()->make("<!DOCTYPE html>
 <html>
 <head>
@@ -563,7 +506,7 @@ $clientIp = $r->ip();
     private function redirectToFailure($message = 'Payment failed')
     {
         $url = url("/payment/failed?error=" . urlencode($message));
-        
+
         return response()->make("<!DOCTYPE html>
 <html>
 <head>
@@ -588,35 +531,35 @@ $clientIp = $r->ip();
     }
 
     public function paymentSuccess(Request $request)
-{
-    $orderId = $request->query('order');
-    
-    if (!$orderId) {
-        return redirect('/')->with('error', 'Invalid payment confirmation');
-    }
-    
-    $order = Order::find($orderId);
-    
-    if (!$order) {
-        return redirect('/')->with('error', 'Order not found');
-    }
-    
-    return view('payment.success', [
-        'order' => $order
-    ]);
-}
+    {
+        $orderId = $request->query('order');
 
-/**
- * Payment failed page
- */
-public function paymentFailed(Request $request)
-{
-    $errorMessage = $request->query('error', 'Payment processing failed');
-    
-    return view('payment.failed', [
-        'error' => $errorMessage
-    ]);
-}
+        if (!$orderId) {
+            return redirect('/')->with('error', 'Invalid payment confirmation');
+        }
+
+        $order = Order::find($orderId);
+
+        if (!$order) {
+            return redirect('/')->with('error', 'Order not found');
+        }
+
+        return view('payment.success', [
+            'order' => $order
+        ]);
+    }
+
+    /**
+     * Payment failed page
+     */
+    public function paymentFailed(Request $request)
+    {
+        $errorMessage = $request->query('error', 'Payment processing failed');
+
+        return view('payment.failed', [
+            'error' => $errorMessage
+        ]);
+    }
 
 
 
@@ -636,17 +579,17 @@ public function paymentFailed(Request $request)
     // 5) Refund
     public function refund(Request $r, Order $order)
     {
-        $this->validate($r, ['amount'=>'required|numeric']);
+        $this->validate($r, ['amount' => 'required|numeric']);
         $amountPence = intval(round($r->amount * 100));
 
         // find last successful transaction id
         $last = $order->payments()->whereNotNull('transaction_id')->latest()->first();
-        if (!$last) return response()->json(['error'=>'No transaction to refund'], 422);
+        if (!$last) return response()->json(['error' => 'No transaction to refund'], 422);
 
         $payload = [
             'transactionType' => 'Refund',
             'relatedTransactionId' => $last->transaction_id,
-            'vendorTxCode' => 'refund-'.$order->id.'-'.uniqid(),
+            'vendorTxCode' => 'refund-' . $order->id . '-' . uniqid(),
             'amount' => $amountPence,
             'currency' => $order->currency
         ];
@@ -670,22 +613,20 @@ public function paymentFailed(Request $request)
             $order->update(['status' => 'refunded']);
         }
 
-        return response()->json(['status'=>$resp->status(),'body'=>$resp->json()], $resp->status());
+        return response()->json(['status' => $resp->status(), 'body' => $resp->json()], $resp->status());
     }
 
     // Optional return view after payment
-    public function paymentReturn(Request $r) {
-        return view('payment-return', ['query'=>$r->all()]);
+    public function paymentReturn(Request $r)
+    {
+        return view('payment-return', ['query' => $r->all()]);
     }
 
     public function handleCallback(Request $request)
-{
-    // 1. Verify the payload / signature if provided
-    // 2. Update your order/payment status
-    // 3. Return a 200 OK response
-    return response()->json(['status' => 'success']);
+    {
+        // 1. Verify the payload / signature if provided
+        // 2. Update your order/payment status
+        // 3. Return a 200 OK response
+        return response()->json(['status' => 'success']);
+    }
 }
-
-    
-}
-
