@@ -1,6 +1,7 @@
 <?php
 namespace App\Services;
 
+use App\Models\Payment;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Client\Response;
@@ -125,12 +126,18 @@ class OpayoService
         'vendorTxCode'    => $payload['vendorTxCode'] ?? 'unknown'
     ]);
 
+
     $response = $this->client()->post($url, $payload);
 
     if ($response->successful()) {
         Log::info('Opayo: Transaction created successfully', [
             'transactionId' => $response->json('transactionId')
         ]);
+        
+        // Update transaction id in payment record
+        Payment::where('vendor_tx_code', $payload['vendorTxCode'])
+            ->update(['transaction_id' => $response->json('transactionId')]);
+
     } else {
         // Safely log body in case it's not JSON
         $body = [];
