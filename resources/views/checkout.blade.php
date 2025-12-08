@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html>
 <head>
@@ -253,21 +252,8 @@
       font-family: 'Courier New', monospace;
     }
 
-    #threeds-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 9999;
+    #threeds-form {
       display: none;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #threeds-container.active {
-      display: flex;
     }
 
     .redirect-message {
@@ -414,39 +400,39 @@
         <div class="form-row">
           <div class="form-group">
             <label class="form-label" for="first_name">First Name<span class="required">*</span></label>
-            <input type="text" id="first_name" name="first_name" class="form-input" value="{{ $order->FirstName }}" placeholder="John" required>
+            {{-- <input type="text" id="first_name" name="first_name" class="form-input" value="{{ $order->FirstName }}" placeholder="John" required> --}}
           </div>
 
           <div class="form-group">
             <label class="form-label" for="last_name">Last Name<span class="required">*</span></label>
-            <input type="text" id="last_name" name="last_name" class="form-input" value="{{ $order->LastName }}" placeholder="Doe" required>
+            {{-- <input type="text" id="last_name" name="last_name" class="form-input" value="{{ $order->LastName }}" placeholder="Doe" required> --}}
           </div>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="email">Email Address<span class="required">*</span></label>
-          <input type="email" id="email" name="email" class="form-input" value="{{ $order->email }}" placeholder="john.doe@example.com" required>
+          {{-- <input type="email" id="email" name="email" class="form-input" value="{{ $order->email }}" placeholder="john.doe@example.com" required> --}}
         </div>
 
         <div class="form-group">
           <label class="form-label" for="contact">Contact Number<span class="required">*</span></label>
-          <input type="tel" id="contact" name="contact" class="form-input" value="{{ $order->contact }}" placeholder="+44 7700 900000" required>
+          {{-- <input type="tel" id="contact" name="contact" class="form-input" value="{{ $order->contact }}" placeholder="+44 7700 900000" required> --}}
         </div>
 
         <div class="form-group">
           <label class="form-label" for="billing_address">Billing Address<span class="required">*</span></label>
-          <input type="text" id="billing_address" name="billing_address" class="form-input" value="{{ $order->billing_address }}" placeholder="123 Main Street" required>
+          {{-- <input type="text" id="billing_address" name="billing_address" class="form-input" value="{{ $order->billing_address }}" placeholder="123 Main Street" required> --}}
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label class="form-label" for="city">City<span class="required">*</span></label>
-            <input type="text" id="city" name="city" class="form-input" value="{{ $order->city }}" placeholder="London" required>
+            {{-- <input type="text" id="city" name="city" class="form-input" value="{{ $order->city }}" placeholder="London" required> --}}
           </div>
 
           <div class="form-group">
             <label class="form-label" for="postal_code">Postal Code<span class="required">*</span></label>
-            <input type="text" id="postal_code" name="postal_code" class="form-input" value="{{ $order->postal_code }}" placeholder="SW1A 1AA" required>
+            {{-- <input type="text" id="postal_code" name="postal_code" class="form-input" value="{{ $order->postal_code }}" placeholder="SW1A 1AA" required> --}}
           </div>
         </div>
       </div>
@@ -462,17 +448,15 @@
 </div>
 
 <!-- 3DS Challenge Form (hidden, auto-submits when 3DS required) -->
-<div id="threeds-container" style="display: none;">
-  <form id="threeds-form" method="POST" action="" target="_self">
-    <input type="hidden" name="creq" id="creq-input" value="">
-    <input type="hidden" name="threeDSSessionData" id="threeds-session-input" value="">
-  </form>
+<form id="threeds-form" method="POST" action="" target="_self">
+  <input type="hidden" name="creq" id="creq-input" value="">
+  <input type="hidden" name="threeDSSessionData" id="threeds-session-input" value="">
   <div class="redirect-message">
     <div class="spinner"></div>
     <p><strong>Redirecting to your bank for secure authentication</strong></p>
     <p>Please do not close this window or press the back button.</p>
   </div>
-</div>
+</form>
 
 <pre id="debug"></pre>
 
