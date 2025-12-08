@@ -464,36 +464,36 @@ class AppointmentController extends Controller
      * @param  \App\Models\Appointment  $appointment
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Appointment $appointment)
-    {
-        try {
-            // Check if appointment exists
-            if (!$appointment) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Appointment not found.'
-                ], 404);
-            }
+    // public function destroy(Appointment $appointment)
+    // {
+    //     //Check if appointment exists
 
-            // Delete related records first to maintain referential integrity
+    //         if (!$appointment) {
+    //             return response()->json([
+    //                 'status' => 'error',
+    //                 'message' => 'Appointment not found.'
+    //             ], 404);
+    //         }
+
+    //         // Delete related records first to maintain referential integrity
             
 
-            // Delete the appointment
-            $appointment->delete();
+    //         // Delete the appointment
+    //         $appointment->delete();
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Appointment deleted successfully.'
-            ], 200);
+    //         return response()->json([
+    //             'status' => 'success',
+    //             'message' => 'Appointment deleted successfully.'
+    //         ], 200);
 
-        } catch (\Exception $e) {
-            Log::error('Error deleting appointment: ' . $e->getMessage());
-            return response()->json([
-                'status' => 'error',
-                'message' => 'An error occurred while deleting the appointment.'
-            ], 500);
-        }
-    }
+    //     } catch (\Exception $e) {
+    //         Log::error('Error deleting appointment: ' . $e->getMessage());
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'An error occurred while deleting the appointment.'
+    //         ], 500);
+    //     }ppointment->delete();
+    // }
 
 
     public function cancleapp(Request $request)
