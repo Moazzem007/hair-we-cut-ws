@@ -9,6 +9,6 @@ class PaymentOrders extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['reference','amount','currency','status','opayo_transaction_id','opayo_response'];
+    protected $fillable = ['reference','amount','currency','status','opayo_transaction_id','opayo_response','appointment_id'];
     protected $casts = ['opayo_response' => 'array'];
 }
