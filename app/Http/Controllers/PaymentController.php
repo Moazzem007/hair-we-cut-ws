@@ -64,7 +64,7 @@ class PaymentController extends Controller
         // Validate incoming request
         $data = $r->validate([
             'appointment_id' => 'required|integer|exists:appointments,id',
-            'order_id'       => 'required|integer|exists:orders,id',
+            'order_id'       => 'required|integer|exists:payment_orders,id',
             'merchantSessionKey' => 'required|string',
             'cardIdentifier'     => 'required|string'
         ]);
