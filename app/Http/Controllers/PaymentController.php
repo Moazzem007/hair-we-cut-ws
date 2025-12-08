@@ -167,7 +167,7 @@ class PaymentController extends Controller
             "currency" => "GBP",
             "description" => "Transaction",
             "customerFirstName" => $customer->name ?? "Customer",
-            "customerLastName" => "Name",
+            "customerLastName" => $customer->last_name ?? "Name",
             "billingAddress" => [
                 "address1" => $customer->billing_address,
                 "city" => $customer->city ?? "N/A",
