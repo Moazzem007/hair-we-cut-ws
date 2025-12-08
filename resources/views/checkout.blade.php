@@ -124,49 +124,27 @@
       color: #667eea;
     }
 
-    .form-group {
+    .info-group {
       margin-bottom: 18px;
     }
 
-    .form-label {
-      font-size: 13px;
+    .info-label {
+      font-size: 12px;
       font-weight: 600;
-      color: #4a5568;
+      color: #718096;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       margin-bottom: 6px;
       display: block;
     }
 
-    .form-label .required {
-      color: #e53e3e;
-      margin-left: 2px;
-    }
-
-    .form-input {
-      width: 100%;
-      padding: 12px 14px;
+    .info-value {
       font-size: 15px;
       color: #2d3748;
-      background: #fff;
-      border: 2px solid #e2e8f0;
+      padding: 10px 12px;
+      background: #f7fafc;
       border-radius: 6px;
-      transition: all 0.3s;
-      font-family: inherit;
-    }
-
-    .form-input:focus {
-      outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-
-    .form-input::placeholder {
-      color: #a0aec0;
-    }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
+      border: 1px solid #e2e8f0;
     }
 
     #sp-container {
@@ -333,11 +311,6 @@
         padding: 14px;
         font-size: 15px;
       }
-
-      .form-row {
-        grid-template-columns: 1fr;
-        gap: 18px;
-      }
     }
 
     @media (max-width: 480px) {
@@ -345,9 +318,9 @@
         padding: 18px;
       }
 
-      .form-input {
+      .info-value {
         font-size: 14px;
-        padding: 10px 12px;
+        padding: 8px 10px;
       }
     }
   </style>
@@ -359,92 +332,80 @@
     <p>Complete your payment securely</p>
   </div>
 
-  <form id="checkout-form" onsubmit="return false;">
-    <div class="checkout-grid">
-      <!-- Payment Section (Left) -->
-      <div class="checkout-card">
-        <div class="card-header">
-          <div class="card-icon">💳</div>
-          <h2>Payment Details</h2>
-        </div>
+  <div class="checkout-grid">
+    <!-- Payment Section (Left) -->
+    <div class="checkout-card">
+      <div class="card-header">
+        <div class="card-icon">💳</div>
+        <h2>Payment Details</h2>
+      </div>
 
-        <div class="order-summary">
-          <div class="summary-row">
-            <span class="summary-label">Order Number</span>
-            <span class="summary-value">#{{ $order->id }}</span>
-          </div>
-          <div class="summary-row">
-            <span class="summary-label">Appointment</span>
-            <span class="summary-value">#{{ $appointment->id }}</span>
-          </div>
-          <div class="summary-row">
-            <span class="summary-label">Total Amount</span>
-            <span class="summary-value">£{{ number_format($order->amount / 100, 2) }}</span>
-          </div>
+      <div class="order-summary">
+        <div class="summary-row">
+          <span class="summary-label">Order Number</span>
+          <span class="summary-value">#{{ $order->id }}</span>
         </div>
+        <div class="summary-row">
+          <span class="summary-label">Appointment</span>
+          <span class="summary-value">#{{ $appointment->id }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Total Amount</span>
+          <span class="summary-value">£{{ number_format($order->amount / 100, 2) }}</span>
+        </div>
+      </div>
 
+      <form id="checkout-form" onsubmit="return false;">
         <div id="sp-container"></div>
+        <button id="submit-button" type="button" disabled>Loading…</button>
+      </form>
 
-        <div class="security-badge">
-          Secured by 256-bit SSL encryption
-        </div>
+      <div class="security-badge">
+        Secured by 256-bit SSL encryption
       </div>
 
-      <!-- Customer Information Section (Right) -->
-      <div class="checkout-card">
-        <div class="card-header">
-          <div class="card-icon">👤</div>
-          <h2>Customer Information</h2>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label" for="first_name">First Name<span class="required">*</span></label>
-            {{-- <input type="text" id="first_name" name="first_name" class="form-input" value="{{ $order->FirstName }}" placeholder="John" required> --}}
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="last_name">Last Name<span class="required">*</span></label>
-            {{-- <input type="text" id="last_name" name="last_name" class="form-input" value="{{ $order->LastName }}" placeholder="Doe" required> --}}
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="email">Email Address<span class="required">*</span></label>
-          {{-- <input type="email" id="email" name="email" class="form-input" value="{{ $order->email }}" placeholder="john.doe@example.com" required> --}}
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="contact">Contact Number<span class="required">*</span></label>
-          {{-- <input type="tel" id="contact" name="contact" class="form-input" value="{{ $order->contact }}" placeholder="+44 7700 900000" required> --}}
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="billing_address">Billing Address<span class="required">*</span></label>
-          {{-- <input type="text" id="billing_address" name="billing_address" class="form-input" value="{{ $order->billing_address }}" placeholder="123 Main Street" required> --}}
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label" for="city">City<span class="required">*</span></label>
-            {{-- <input type="text" id="city" name="city" class="form-input" value="{{ $order->city }}" placeholder="London" required> --}}
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="postal_code">Postal Code<span class="required">*</span></label>
-            {{-- <input type="text" id="postal_code" name="postal_code" class="form-input" value="{{ $order->postal_code }}" placeholder="SW1A 1AA" required> --}}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="checkout-card" style="max-width: 100%;">
-      <button id="submit-button" type="button" disabled>Loading…</button>
-      
       <div id="opayo-errors" class="opayo-error"></div>
       <div id="opayo-warning" class="opayo-warning"></div>
     </div>
-  </form>
+
+    <!-- Customer Information Section (Right) -->
+    <div class="checkout-card">
+      <div class="card-header">
+        <div class="card-icon">👤</div>
+        <h2>Customer Information</h2>
+      </div>
+
+      <div class="info-group">
+        <label class="info-label">Full Name</label>
+        <div class="info-value">{{ $order->FirstName }} {{ $order->LastName }}</div>
+      </div>
+
+      <div class="info-group">
+        <label class="info-label">Email Address</label>
+        <div class="info-value">{{ $order->email }}</div>
+      </div>
+
+      <div class="info-group">
+        <label class="info-label">Contact Number</label>
+        <div class="info-value">{{ $order->contact }}</div>
+      </div>
+
+      <div class="info-group">
+        <label class="info-label">Billing Address</label>
+        <div class="info-value">{{ $order->billing_address }}</div>
+      </div>
+
+      <div class="info-group">
+        <label class="info-label">City</label>
+        <div class="info-value">{{ $order->city }}</div>
+      </div>
+
+      <div class="info-group">
+        <label class="info-label">Postal Code</label>
+        <div class="info-value">{{ $order->postal_code }}</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- 3DS Challenge Form (hidden, auto-submits when 3DS required) -->
