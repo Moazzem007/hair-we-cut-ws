@@ -508,7 +508,7 @@
   const postalCode = document.getElementById("postal_code");
 
 
-  if(DEBUG_MODE) debugEl.style.display = "block";
+  if(DEBUG_MODE) debugEl.style.display = "none";
 
   function debug(...args){
     console.log(...args); 
@@ -537,6 +537,17 @@
 
   // Validate sagepay.js loaded
   if(!window.sagepayCheckout){
+            const paymentData = {
+            status: 'failed',
+            message: 'Payment system failed to load. Please check your internet connection and refresh.',
+            orderId: orderId,
+            amount: amount,
+        };
+        
+        // For Flutter WebView
+        if (window.PaymentChannel) {
+            window.PaymentChannel.postMessage(JSON.stringify(paymentData));
+        }
     showError("Payment system failed to load. Please check your internet connection and refresh.");
     debug("CRITICAL: sagepay.js not loaded");
     return;
@@ -567,6 +578,17 @@
     debug("✓ Drop-in initialized successfully");
   }catch(e){
     debug("✗ Drop-in initialization failed:", e);
+    const paymentData = {
+            status: 'failed',
+            message: 'Payment form failed to initialize. This may be due to an expired session. Please refresh the page.',
+            orderId: orderId,
+            amount: amount,
+        };
+        
+        // For Flutter WebView
+        if (window.PaymentChannel) {
+            window.PaymentChannel.postMessage(JSON.stringify(paymentData));
+        }
     showError("Payment form failed to initialize. This may be due to an expired session. Please refresh the page.");
     
     // Check if MSK expired (400 seconds)
@@ -584,7 +606,17 @@
     if(!result.success){
       const errorMsg = result.error?.errorMessage || "Card tokenization failed";
       const errorCode = result.error?.errorCode;
-      
+       const paymentData = {
+            status: 'failed',
+            message: 'Card tokenization failed.',
+            orderId: orderId,
+            amount: amount,
+        };
+        
+        // For Flutter WebView
+        if (window.PaymentChannel) {
+            window.PaymentChannel.postMessage(JSON.stringify(paymentData));
+        }
       debug("✗ Tokenization failed");
       debug("Error code:", errorCode);
       debug("Error message:", errorMsg);
@@ -709,6 +741,17 @@
       // Handle rejected/failed
       if(response.status >= 400 || data.body?.status === "Rejected"){
         const statusDetail = data.body?.statusDetail || "Payment declined";
+
+        const paymentData = {
+            status: 'failed',
+            orderId: orderId,
+            amount: amount,
+        };
+        
+        // For Flutter WebView
+        if (window.PaymentChannel) {
+            window.PaymentChannel.postMessage(JSON.stringify(paymentData));
+        }
         debug("✗ Payment rejected:", statusDetail);
         throw new Error(statusDetail);
       }
@@ -721,6 +764,18 @@
       debug("=== PAYMENT ERROR ===");
       console.error("Payment error:", error);
       debug("Error message:", error.message);
+
+       const paymentData = {
+            status: 'failed',
+            message: 'Payment processing failed. Please try again.',
+            orderId: orderId,
+            amount: amount,
+        };
+        
+        // For Flutter WebView
+        if (window.PaymentChannel) {
+            window.PaymentChannel.postMessage(JSON.stringify(paymentData));
+        }
       
       showError(error.message || "Payment processing failed. Please try again.");
       submitBtn.disabled = false;

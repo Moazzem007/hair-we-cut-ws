@@ -140,5 +140,36 @@
         
         <a href="" class="btn">Back to app</a>
     </div>
+
+<script>
+// Send message to Flutter WebView
+window.addEventListener('load', function() {
+    const paymentData = {
+        status: 'success',
+        orderId: '{{ $order->id }}',
+        amount: {{ $order->amount }},
+        // appointmentId: '{{ $appointment->id ?? "" }}',
+    };
+    
+    // For Flutter WebView
+    if (window.PaymentChannel) {
+        window.PaymentChannel.postMessage(JSON.stringify(paymentData));
+    }
+    
+    // Alternative method for Flutter InAppWebView
+    if (window.flutter_inappwebview) {
+        window.flutter_inappwebview.callHandler('paymentSuccess', paymentData);
+    }
+    
+    // Fallback - try to call a Flutter function directly
+    try {
+        if (typeof PaymentSuccess !== 'undefined') {
+            PaymentSuccess.postMessage(JSON.stringify(paymentData));
+        }
+    } catch (e) {
+        console.log('Flutter handler not available');
+    }
+});
+</script>
 </body>
 </html>
