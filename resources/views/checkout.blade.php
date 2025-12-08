@@ -575,7 +575,34 @@
 
   // Tokenization callback
   async function onToken(result){
-    alert(firstName.value);
+    const missingFields = [];
+    if(!firstName.value){
+      missingFields.push("First Name");
+    }
+    if(!lastName.value){
+      missingFields.push("Last Name");
+    }
+    if(!email.value){
+      missingFields.push("Email");
+    }
+    if(!contact.value){
+      missingFields.push("Contact");
+    }
+    if(!billingAddress.value){
+      missingFields.push("Billing Address");
+    }
+    if(!city.value){
+      missingFields.push("City");
+    }
+    if(!postalCode.value){
+      missingFields.push("Postal Code");
+    }
+    
+    if(missingFields.length > 0){
+      alert("Please fill in the following fields: "+missingFields.join(", "));
+      return;
+    }
+    
     debug("=== TOKENIZATION CALLBACK ===");
     debug("Tokenization result:", result);
     
