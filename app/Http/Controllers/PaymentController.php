@@ -28,7 +28,8 @@ class PaymentController extends Controller
         $order = Order::create([
             'reference' => $data['reference'] ?? 'ORD-' . time(),
             'amount' => intval(round($data['amount'] * 100)),
-            'currency' => 'GBP'
+            'currency' => 'GBP',
+            'appointment_id' => $data['appointment_id']
         ]);
 
         $appointment = Appointment::find($data['appointment_id']);
@@ -477,7 +478,7 @@ class PaymentController extends Controller
         $order = Order::find($orderId);
         $appointment = Appointment::find($order->appointment_id);
         $appointment->update(['payment_status' => 'paid']);
-        
+
         $url = url("/payment/success?order={$orderId}");
 
         return response()->make("<!DOCTYPE html>
