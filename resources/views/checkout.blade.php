@@ -43,6 +43,10 @@
       opacity: 0.9;
     }
 
+    .checkout-container {
+      /* Wrapper for the entire checkout section */
+    }
+
     .checkout-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -259,15 +263,16 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.5);
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       z-index: 9999;
       display: none;
       align-items: center;
       justify-content: center;
+      padding: 20px;
     }
 
-    #threeds-container.active {
-      display: flex;
+    #threeds-form {
+      display: none;
     }
 
     .redirect-message {
@@ -373,8 +378,9 @@
     <p>Complete your payment securely</p>
   </div>
 
-  <form id="checkout-form" onsubmit="return false;">
-    <div class="checkout-grid">
+  <div class="checkout-container">
+    <form id="checkout-form" onsubmit="return false;">
+      <div class="checkout-grid">
       <!-- Payment Section (Left) -->
       <div class="checkout-card">
         <div class="card-header">
@@ -459,6 +465,7 @@
       <div id="opayo-warning" class="opayo-warning"></div>
     </div>
   </form>
+  </div>
 </div>
 
 <!-- 3DS Challenge Form (hidden, auto-submits when 3DS required) -->
