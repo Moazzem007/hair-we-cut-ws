@@ -496,6 +496,15 @@
   const warningBox = document.getElementById("opayo-warning");
   const debugEl = document.getElementById("debug");
 
+
+  const firstName = document.getElementById("first_name");
+  const lastName = document.getElementById("last_name");
+  const email = document.getElementById("email");
+  const contact = document.getElementById("contact");
+  const billingAddress = document.getElementById("billing_address");
+  const city = document.getElementById("city");
+  const postalCode = document.getElementById("postal_code");
+
   if(DEBUG_MODE) debugEl.style.display = "block";
 
   function debug(...args){
@@ -541,6 +550,7 @@
   // Initialize Drop-in
   try{
     debug("Initializing Opayo Drop-in...");
+    alert(firstName.value);
     checkout = sagepayCheckout({
       merchantSessionKey: msk,
       onTokenise: onToken,
