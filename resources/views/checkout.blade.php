@@ -600,7 +600,8 @@
     
     if(missingFields.length > 0){
       alert("Please fill in the following fields: "+missingFields.join(", "));
-      return;
+      submitBtn.disabled = false; 
+      submitBtn.textContent = "Pay Now"; 
     }
     
     debug("=== TOKENIZATION CALLBACK ===");
