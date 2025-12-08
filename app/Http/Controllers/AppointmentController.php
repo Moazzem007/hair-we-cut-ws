@@ -126,7 +126,8 @@ class AppointmentController extends Controller
                 'lng'          => $request->lng,
                 'appType'      => $request->appType,
                 'customer_id'  => Auth::user()->id,
-                'salon_id'     => $barber->barber_of
+                'salon_id'     => $barber->barber_of,
+                'payment_status' => "pending"
             );
 
             // $slot = BarberTimeSlot::where('barber_id',$request->barber_id)->where('id', $request->slote)->where('status', 'Avalible')->first();
@@ -465,7 +466,33 @@ class AppointmentController extends Controller
      */
     public function destroy(Appointment $appointment)
     {
-        //
+        try {
+            // Check if appointment exists
+            if (!$appointment) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Appointment not found.'
+                ], 404);
+            }
+
+            // Delete related records first to maintain referential integrity
+            
+
+            // Delete the appointment
+            $appointment->delete();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Appointment deleted successfully.'
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error deleting appointment: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred while deleting the appointment.'
+            ], 500);
+        }
     }
 
 
