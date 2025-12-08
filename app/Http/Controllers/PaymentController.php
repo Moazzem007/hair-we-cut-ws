@@ -47,6 +47,7 @@ class PaymentController extends Controller
     {
         // create merchantSessionKey server-side
         $vendorName = config('services.opayo.vendor_name', 'sandbox');
+        $customer = Customer::findOrFail($appointment->customer_id);
         $resp = $this->opayo->createMerchantSessionKey($vendorName);
         if ($resp->failed()) {
             // \Log::error('MSK failed', ['status'=>$resp->status(),'body'=>$resp->body()]);
@@ -54,7 +55,7 @@ class PaymentController extends Controller
         }
         $body = $resp->json();
         $merchantSessionKey = $body['merchantSessionKey'] ?? null;
-        return view('checkout', compact('order', 'merchantSessionKey', 'appointment'));
+        return view('checkout', compact('order', 'merchantSessionKey', 'appointment', 'customer'));
     }
 
     // 3) Register transaction: backend receives cardIdentifier from drop-in

@@ -298,6 +298,7 @@ Route::group(['prefix' => 'customer'], function () {
 
         // Appointments
         Route::post('appointment', [AppointmentController::class, 'store']);
+        Route::post('delete-appointment/{id}', [AppointmentController::class, 'destroy']);
 
         // Create payment
         Route::post('/payment-order', [PaymentController::class, 'createPaymentOrder']);
