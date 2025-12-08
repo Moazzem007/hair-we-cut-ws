@@ -166,7 +166,7 @@ class PaymentController extends Controller
             "currency" => "GBP",
             "description" => "Transaction",
             "customerFirstName" => $customer->name ?? "Customer",
-            "customerLastName" => "Name",
+            "customerLastName" => $customer->last_name ?? "Name",
             "billingAddress" => [
                 "address1" => $customer->billing_address,
                 "city" => $customer->city ?? "N/A",
@@ -302,17 +302,17 @@ class PaymentController extends Controller
         // Update payment and order based on 3DS requirements
         if (isset($body['3DSecure']) && $body['3DSecure']['status'] === 'Authenticated') {
             $order->update(['status' => 'paid']);
-            $appointment->update(['payment_status' => 'paid']);
+            // $appointment->update(['payment_status' => 'paid']);
             $payment->requires_3ds = false;
         } elseif (isset($body['3DSecure']) && $body['3DSecure']['status'] === 'NotChecked') {
             $payment->requires_3ds = true;
             $payment->three_ds_data = $body;
         } else {
             $order->update(['status' => 'payment_failed']);
-            $appointment->update(['payment_status' => 'failed']);
+            // $appointment->update(['payment_status' => 'failed']);
         }
 
-        $appointment->save();
+        // $appointment->save();
         $payment->save();
 
         return response()->json([
@@ -474,6 +474,10 @@ class PaymentController extends Controller
      */
     private function redirectToSuccess($orderId)
     {
+        $order = Order::find($orderId);
+        $appointment = Appointment::find($order->appointment_id);
+        $appointment->update(['payment_status' => 'paid']);
+        
         $url = url("/payment/success?order={$orderId}");
 
         return response()->make("<!DOCTYPE html>
