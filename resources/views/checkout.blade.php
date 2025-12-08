@@ -550,7 +550,7 @@
   // Initialize Drop-in
   try{
     debug("Initializing Opayo Drop-in...");
-    alert(firstName.value);
+    
     checkout = sagepayCheckout({
       merchantSessionKey: msk,
       onTokenise: onToken,
@@ -575,6 +575,7 @@
 
   // Tokenization callback
   async function onToken(result){
+    alert(firstName.value);
     debug("=== TOKENIZATION CALLBACK ===");
     debug("Tokenization result:", result);
     
