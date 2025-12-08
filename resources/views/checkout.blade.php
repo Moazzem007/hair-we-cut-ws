@@ -602,6 +602,7 @@
       alert("Please fill in the following fields: "+missingFields.join(", "));
       submitBtn.disabled = false; 
       submitBtn.textContent = "Pay Now"; 
+      return;
     }
     
     debug("=== TOKENIZATION CALLBACK ===");
