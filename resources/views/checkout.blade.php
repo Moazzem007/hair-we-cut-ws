@@ -507,12 +507,6 @@
   const city = document.getElementById("city");
   const postalCode = document.getElementById("postal_code");
 
-  submitBtn.addEventListener("click", ()=>{
-    if(!firstName.value || !lastName.value || !email.value || !contact.value || !billingAddress.value || !city.value || !postalCode.value){
-      alert("Please fill in all the fields");
-      return;
-    }
-  });
 
   if(DEBUG_MODE) debugEl.style.display = "block";
 
@@ -584,36 +578,6 @@
 
   // Tokenization callback
   async function onToken(result){
-    const missingFields = [];
-    if(!firstName.value){
-      missingFields.push("First Name");
-    }
-    if(!lastName.value){
-      missingFields.push("Last Name");
-    }
-    if(!email.value){
-      missingFields.push("Email");
-    }
-    if(!contact.value){
-      missingFields.push("Contact");
-    }
-    if(!billingAddress.value){
-      missingFields.push("Billing Address");
-    }
-    if(!city.value){
-      missingFields.push("City");
-    }
-    if(!postalCode.value){
-      missingFields.push("Postal Code");
-    }
-    
-    if(missingFields.length > 0){
-      alert("Please fill in the following fields: "+missingFields.join(", "));
-      submitBtn.disabled = false; 
-      submitBtn.textContent = "Pay Now"; 
-      return;
-    }
-    
     debug("=== TOKENIZATION CALLBACK ===");
     debug("Tokenization result:", result);
     
@@ -653,6 +617,13 @@
     const sessionData = btoa(`order_${orderId}`);
     
     const payload = {
+      first_name: firstName.value,
+      last_name: lastName.value,
+      email: email.value,
+      contact: contact.value,
+      billing_address: billingAddress.value,
+      city: city.value,
+      postal_code: postalCode.value,
       appointment_id: appointmentId,
       order_id: orderId,
       merchantSessionKey: msk,
@@ -759,6 +730,10 @@
 
   // Submit button handler
   submitBtn.addEventListener("click", async ()=>{
+    if(!firstName.value || !lastName.value || !email.value || !contact.value || !billingAddress.value || !city.value || !postalCode.value){
+      alert("Please fill in all the fields");
+      return;
+    }
     debug("=== PAY NOW CLICKED ===");
     submitBtn.disabled = true;
     submitBtn.textContent = "Processing…";

@@ -65,6 +65,13 @@ class PaymentController extends Controller
 
         // Validate incoming request
         $data = $r->validate([
+            'first_name' => 'required',
+            'last_name' => 'required',
+            'email' => 'required',
+            'contact' => 'required',
+            'billing_address' => 'required',
+            'city' => 'required',
+            'postal_code' => 'required',
             'appointment_id' => 'required|integer|exists:appointments,id',
             'order_id'       => 'required|integer|exists:payment_orders,id',
             'merchantSessionKey' => 'required|string',
@@ -74,6 +81,20 @@ class PaymentController extends Controller
         $order = Order::findOrFail($data['order_id']);
         $appointment = Appointment::findOrFail($data['appointment_id']);
         $customer = Customer::findOrFail($appointment->customer_id);
+
+        $customer->update([
+            'name' => $data['first_name'],
+            'last_name' => $data['last_name'],
+            'email' => $data['email'],
+            'contact' => $data['contact'],
+            'billing_address' => $data['billing_address'],
+            'city' => $data['city'],
+            'postal_code' => $data['postal_code'],
+        ]);
+
+        $customer->save();
+
+
 
         // Validate essential customer fields
         if (!$customer->postal_code || !$customer->billing_address) {
