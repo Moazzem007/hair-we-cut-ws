@@ -497,6 +497,8 @@
   const debugEl = document.getElementById("debug");
 
 
+ 
+
   const firstName = document.getElementById("first_name");
   const lastName = document.getElementById("last_name");
   const email = document.getElementById("email");
@@ -504,6 +506,13 @@
   const billingAddress = document.getElementById("billing_address");
   const city = document.getElementById("city");
   const postalCode = document.getElementById("postal_code");
+
+  submitBtn.addEventListener("click", ()=>{
+    if(!firstName.value || !lastName.value || !email.value || !contact.value || !billingAddress.value || !city.value || !postalCode.value){
+      alert("Please fill in all the fields");
+      return;
+    }
+  });
 
   if(DEBUG_MODE) debugEl.style.display = "block";
 
