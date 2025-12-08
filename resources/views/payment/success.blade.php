@@ -138,7 +138,7 @@
             </div>
         </div>
         
-        <a href="" class="btn">Back to app</a>
+        {{-- <a href="" class="btn">Back to app</a> --}}
     </div>
 
 <script>
@@ -146,6 +146,7 @@
 window.addEventListener('load', function() {
     const paymentData = {
         status: 'success',
+        message: 'Payment Successful.',
         orderId: '{{ $order->id }}',
         amount: {{ $order->amount }},
         // appointmentId: '{{ $appointment->id ?? "" }}',
