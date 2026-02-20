@@ -88,7 +88,7 @@ class AppointmentController extends Controller
 
             $role = [
                 'time'      => 'required',
-                'barber_id' => 'required',
+                'barber_id' => 'required|exists:barbers,id',
                 'type'      => 'required',
                 'service'   => 'required',
                 'address'   => $request->appType == 'Mobile_shop' ? 'required' : '',
@@ -110,7 +110,21 @@ class AppointmentController extends Controller
                     'Error' => $validateData->errors(),
                 ], 400);
             }
+            $currentUser = Auth::user();
+            if (!$currentUser) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated user.',
+                ], 401);
+            }
+
             $barber = Barber::find($request->barber_id);
+            if (!$barber) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Barber not found.',
+                ], 404);
+            }
 
             $data = array(
                 'date'         => $request->time,
@@ -125,7 +139,7 @@ class AppointmentController extends Controller
                 'lat'          => $request->lat,
                 'lng'          => $request->lng,
                 'appType'      => $request->appType,
-                'customer_id'  => Auth::user()->id,
+                'customer_id'  => $currentUser->id,
                 'salon_id'     => $barber->barber_of,
                 'payment_status' => "pending"
             );
@@ -147,11 +161,11 @@ class AppointmentController extends Controller
             // $slot->update();
 
             $usermaildata = array(
-                'name'    => Auth::user()->name,
+                'name'    => $currentUser->name,
                 'date'    => $request->time,
-                'contact' => Auth::user()->contact,
+                'contact' => $currentUser->contact,
                 'time'    => BarberTimeSlot::find($request->slote),
-                'email'   => Auth::user()->email,
+                'email'   => $currentUser->email,
                 'barber'     => $barber->name,
                 'salon'     => $barber->barber_of,
                 'appType' => $request->appType,
@@ -159,25 +173,27 @@ class AppointmentController extends Controller
 
             if ($result) {
                 try {
-                    Mail::to(Auth::user()->email)->send(new AppointmentMail($usermaildata));
-                    Log::info('Appointment mail sent successfully to user: ' . Auth::user()->email);
+                    Mail::to($currentUser->email)->send(new AppointmentMail($usermaildata));
+                    Log::info('Appointment mail sent successfully to user: ' . $currentUser->email);
                 } catch (\Exception $e) {
-                    Log::error('Failed to send appointment mail to user: ' . Auth::user()->email . ' Error: ' . $e->getMessage());
+                    Log::error('Failed to send appointment mail to user: ' . $currentUser->email . ' Error: ' . $e->getMessage());
                 }
 
-                if (Auth::user()->device_token && Auth::user()->device_token != null) {
+                if (!empty($currentUser->device_token)) {
                     $this->fcmController->sendNotification(new \Illuminate\Http\Request([
-                        'token' => Auth::user()->device_token,
+                        'token' => $currentUser->device_token,
                         'title' => 'New Appointment',
                         'body' => 'Your appointment has been booked.',
-                        'email' => Auth::user()->email,
+                        'email' => $currentUser->email,
                     ]));
                 }
 
-                $barber = Barber::find($request->barber_id);
-                $user = User::find($barber->barber_of);
+                $user = null;
+                if (!empty($barber->barber_of)) {
+                    $user = User::find($barber->barber_of);
+                }
 
-                if ($user->device_token && $user->device_token != null) {
+                if ($user && !empty($user->device_token)) {
 
                     $this->fcmController->sendNotification(new \Illuminate\Http\Request([
                         'token' => $user->device_token,
@@ -187,7 +203,7 @@ class AppointmentController extends Controller
                     ]));
                 }
 
-                if ($barber->device_token && $barber->device_token != null) {
+                if (!empty($barber->device_token)) {
 
                     $this->fcmController->sendNotification(new \Illuminate\Http\Request([
                         'token' => $barber->device_token,
