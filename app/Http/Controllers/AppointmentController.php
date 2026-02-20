@@ -225,7 +225,7 @@ class AppointmentController extends Controller
 
                 $order = Order::create([
                     'reference' => 'ORD-' . time(),
-                    'amount' => intval($result->amount * 100),
+                    'amount' => intval($request->amount * 100),
                     'currency' => 'GBP',
                     'appointment_id' => $result->id
                 ]);
