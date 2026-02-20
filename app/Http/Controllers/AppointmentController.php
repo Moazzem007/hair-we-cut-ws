@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\AppointmentMail;
 use App\Mail\RefundPayment;
 use App\Http\Controllers\FcmController;
+use App\Models\Order;
 
 class AppointmentController extends Controller
 {
@@ -221,26 +222,22 @@ class AppointmentController extends Controller
                 ];
                 AppointmentLog::create($log);
 
-                $service = Service::find($request->service);
-                if (!$service || !is_numeric($service->price)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Unable to create payment order: invalid service price.',
-                    ], 422);
-                }
-
-                $paymentOrder = PaymentOrder::create([
-                    'reference' => 'ORD-' . $result->id . '-' . time(),
-                    'amount' => intval(round($service->price * 100)),
+                $order = Order::create([
+                    'reference' => $data['reference'] ?? 'ORD-' . time(),
+                    'amount' => intval(round($data['amount'] * 100)),
                     'currency' => 'GBP',
-                    'appointment_id' => $result->id,
+                    'appointment_id' => $data['appointment_id']
                 ]);
+
+                $appointment = Appointment::find($data['appointment_id']);
+                $appointment->payment_status = 'pending';
+                $appointment->update();
 
                 return response()->json([
                     'success' => true,
                     'app_id'  => $result->id,
-                    'order_id' => $paymentOrder->id,
-                    'checkout_url' => url('/checkout/' . $paymentOrder->id . '/' . $result->id),
+                    'order_id' => $order->id,
+                    'checkout_url' => url('/checkout/' . $order->id . '/' . $data['appointment_id'])
                 ]);
             }
         } catch (\Exception $e) {
