@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 
 class BarberAuthApiController extends Controller
 {
@@ -149,8 +148,16 @@ class BarberAuthApiController extends Controller
 
             $attachmentUrl = null;
             if ($request->hasFile('attachment')) {
-                $attachmentPath = $request->file('attachment')->store('barbers/attachments', 'public');
-                $attachmentUrl = url(Storage::url($attachmentPath));
+                $uploadDirectory = public_path('barbers/attachments');
+                if (!is_dir($uploadDirectory)) {
+                    mkdir($uploadDirectory, 0755, true);
+                }
+
+                $file = $request->file('attachment');
+                $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move($uploadDirectory, $fileName);
+
+                $attachmentUrl = asset('barbers/attachments/' . $fileName);
             }
 
             $data = array(
