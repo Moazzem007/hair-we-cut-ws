@@ -148,16 +148,11 @@ class BarberAuthApiController extends Controller
 
             $attachmentUrl = null;
             if ($request->hasFile('attachment')) {
-                $uploadDirectory = public_path('barbers/attachments');
-                if (!is_dir($uploadDirectory)) {
-                    mkdir($uploadDirectory, 0755, true);
-                }
+                $destination = "/barberDoc";
+                $image_uploaded_path = $request->file('attachment')->store($destination, 'public');
+                $data['image'] = basename($image_uploaded_path);
 
-                $file = $request->file('attachment');
-                $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $file->move($uploadDirectory, $fileName);
-
-                $attachmentUrl = asset('barbers/attachments/' . $fileName);
+                $attachmentUrl = basename($image_uploaded_path);
             }
 
             $data = array(
