@@ -154,7 +154,7 @@ class BarberAuthApiController extends Controller
 
                 $filename = basename($image_uploaded_path); // 1771617275_6998bbfbbeb28.pdf
 
-                $attachmentUrl = asset('barbers/attachments/' . $filename);
+                $attachmentUrl = 'barbers/attachments/' . $filename;
             }
 
             $data = array(
