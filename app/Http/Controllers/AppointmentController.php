@@ -93,6 +93,7 @@ class AppointmentController extends Controller
                 'barber_id' => 'required|exists:barbers,id',
                 'type'      => 'required',
                 'service'   => 'required',
+                'amount'   => 'required',
                 'address'   => $request->appType == 'Mobile_shop' ? 'required' : '',
                 'slote'     => 'required',
                 'lat'       => $request->appType == 'Mobile_shop' ? 'required' : '',
@@ -223,13 +224,13 @@ class AppointmentController extends Controller
                 AppointmentLog::create($log);
 
                 $order = Order::create([
-                    'reference' => $data['reference'] ?? 'ORD-' . time(),
-                    'amount' => intval(round($data['amount'] * 100)),
+                    'reference' => 'ORD-' . time(),
+                    'amount' => intval($result->amount * 100),
                     'currency' => 'GBP',
-                    'appointment_id' => $data['appointment_id']
+                    'appointment_id' => $result->id
                 ]);
 
-                $appointment = Appointment::find($data['appointment_id']);
+                $appointment = Appointment::find($result->id);
                 $appointment->payment_status = 'pending';
                 $appointment->update();
 
@@ -237,7 +238,7 @@ class AppointmentController extends Controller
                     'success' => true,
                     'app_id'  => $result->id,
                     'order_id' => $order->id,
-                    'checkout_url' => url('/checkout/' . $order->id . '/' . $data['appointment_id'])
+                    'checkout_url' => url('/checkout/' . $order->id . '/' . $result->id)
                 ]);
             }
         } catch (\Exception $e) {
