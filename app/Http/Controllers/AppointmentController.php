@@ -11,6 +11,7 @@ use App\Models\Cancle;
 use App\Models\Wallet;
 use App\Models\AppointmentLog;
 use App\Models\ProductWallet;
+use App\Models\PaymentOrders as PaymentOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
@@ -220,9 +221,26 @@ class AppointmentController extends Controller
                 ];
                 AppointmentLog::create($log);
 
+                $service = Service::find($request->service);
+                if (!$service || !is_numeric($service->price)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Unable to create payment order: invalid service price.',
+                    ], 422);
+                }
+
+                $paymentOrder = PaymentOrder::create([
+                    'reference' => 'ORD-' . $result->id . '-' . time(),
+                    'amount' => intval(round($service->price * 100)),
+                    'currency' => 'GBP',
+                    'appointment_id' => $result->id,
+                ]);
+
                 return response()->json([
                     'success' => true,
                     'app_id'  => $result->id,
+                    'order_id' => $paymentOrder->id,
+                    'checkout_url' => url('/checkout/' . $paymentOrder->id . '/' . $result->id),
                 ]);
             }
         } catch (\Exception $e) {
