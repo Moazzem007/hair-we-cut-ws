@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class BarberAuthApiController extends Controller
 {
@@ -123,6 +124,7 @@ class BarberAuthApiController extends Controller
                 // 'postcode'=>'required',
                 // 'address2'=>'required',
                 'password' => 'required|confirmed|min:8',
+                'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:5120',
             ];
 
             $validateData = Validator::make($request->all(),$role);
@@ -145,6 +147,12 @@ class BarberAuthApiController extends Controller
 
             $user = User::create($userData);
 
+            $attachmentUrl = null;
+            if ($request->hasFile('attachment')) {
+                $attachmentPath = $request->file('attachment')->store('barbers/attachments', 'public');
+                $attachmentUrl = url(Storage::url($attachmentPath));
+            }
+
             $data = array(
                 'name'     => $request->name,
                 'email'    => $request->email,
@@ -158,6 +166,7 @@ class BarberAuthApiController extends Controller
                 'salon'    => $request->salon,
                 'user_id'  => $user->id,
                 'password' => bcrypt($request->password),
+                'attachment_url' => $attachmentUrl,
             );
             $result = Barber::create($data);
 
