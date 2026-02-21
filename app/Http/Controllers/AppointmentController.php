@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\AppointmentMail;
 use App\Mail\RefundPayment;
 use App\Http\Controllers\FcmController;
+use App\Models\Customer;
 use App\Models\PaymentOrders as Order;
 
 class AppointmentController extends Controller
@@ -192,7 +193,7 @@ class AppointmentController extends Controller
 
                 $user = null;
                 if (!empty($barber->barber_of)) {
-                    $user = User::find($barber->barber_of);
+                    $user = Barber::find($barber->barber_of);
                 }
 
                 if ($user && !empty($user->device_token)) {
@@ -205,15 +206,25 @@ class AppointmentController extends Controller
                     ]));
                 }
 
-                if (!empty($barber->device_token)) {
 
+                $customer = Customer::find($currentUser->id);
+                if ($customer && !empty($customer->device_token)) {
                     $this->fcmController->sendNotification(new \Illuminate\Http\Request([
-                        'token' => $barber->device_token,
+                        'token' => $customer->device_token,
                         'title' => 'New Appointment',
-                        'body' => 'You have a new appointment request.',
-                        'email' => $barber->email,
+                        'body' => 'Your appointment has been booked.',
+                        'email' => $customer->email,
                     ]));
                 }
+                // if (!empty($barber->device_token)) {
+
+                //     $this->fcmController->sendNotification(new \Illuminate\Http\Request([
+                //         'token' => $barber->device_token,
+                //         'title' => 'New Appointment',
+                //         'body' => 'You have a new appointment request.',
+                //         'email' => $barber->email,
+                //     ]));
+                // }
 
                 $log = [
                     'appointment_id' => $result->id,

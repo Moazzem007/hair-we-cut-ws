@@ -591,11 +591,22 @@ class PaymentController extends Controller
         if ($user && !empty($user->device_token)) {
             $this->fcmController->sendNotification(new \Illuminate\Http\Request([
                 'token' => $user->device_token,
-                'title' => 'New Appointment',
-                'body' => 'You have a new appointment request.',
+                'title' => 'Payment Received',
+                'body' => 'Payment received for appointment.',
                 'email' => $user->email,
             ]));
         }
+        $customer = Customer::find($appointment->customer_id);
+
+        if ($customer && !empty($customer->device_token)) {
+            $this->fcmController->sendNotification(new \Illuminate\Http\Request([
+                'token' => $customer->device_token,
+                'title' => 'Payment Received',
+                'body' => 'Payment received for appointment.',
+                'email' => $customer->email,
+            ]));
+        }
+
 
         Wallet::create([
             'user_id'        => $appointment->customer_id,
