@@ -9,17 +9,21 @@ use Illuminate\Http\Request;
 use App\Services\OpayoService;
 use App\Models\PaymentOrders as Order;
 use App\Models\Payment;
+use App\Models\User;
 use App\Models\Wallet;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\FcmController;
 
 class PaymentController extends Controller
 {
     protected $opayo;
+    public $fcmController;
     public function __construct(OpayoService $opayo)
     {
         $this->opayo = $opayo;
+        $this->fcmController = new FcmController();
     }
 
     // 1) Create Order (API)
@@ -576,6 +580,22 @@ class PaymentController extends Controller
         $nextInv = ($maxInv ?? 0) + 1;
 
         $debitAmount = (floatval($order->amount) / 100) * 0.8;
+
+        $barber = Barber::find($appointment->barber_id);
+
+        $user = null;
+        if (!empty($barber->barber_of)) {
+            $user = Barber::find($barber->barber_of);
+        }
+
+        if ($user && !empty($user->device_token)) {
+            $this->fcmController->sendNotification(new \Illuminate\Http\Request([
+                'token' => $user->device_token,
+                'title' => 'New Appointment',
+                'body' => 'You have a new appointment request.',
+                'email' => $user->email,
+            ]));
+        }
 
         Wallet::create([
             'user_id'        => $appointment->customer_id,
