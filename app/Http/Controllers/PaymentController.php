@@ -574,14 +574,16 @@ class PaymentController extends Controller
         $maxInv = Wallet::max('inv');
 
         $nextInv = ($maxInv ?? 0) + 1;
-        
+
+        $debitAmount = (floatval($order->amount) / 100) * 0.8;
+
         Wallet::create([
             'user_id'        => $appointment->customer_id,
             'barber_id'      => $appointment->barber_id,
             'salon_id'       => $appointment->salon_id,
             'appointment_id' => $appointment->id,
             'inv'            => $nextInv,
-            'debit'          => floatval($order->amount) / 100,
+            'debit'          => $debitAmount,
             'credit'         => 0,
             'com_amount'     => 0,
             'description'    => 'Appointment Booking Payment',
