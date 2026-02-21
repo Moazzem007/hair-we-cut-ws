@@ -205,6 +205,8 @@ class BarberAuthApiController extends Controller
 
 
 
+
+
     public function login(Request $request){
 
         $loginData = $request->validate([
@@ -227,6 +229,43 @@ class BarberAuthApiController extends Controller
         $user = Auth::user();
 
         return response()->json($user);
+    }
+
+    public function toggleStatusByEmail(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid data send',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $barber = Barber::where('email', $request->email)->first();
+
+        if (!$barber) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Barber not found',
+            ], 404);
+        }
+
+        $currentStatus = strtolower((string) $barber->status);
+        $barber->status = $currentStatus === 'Active' ? 'Pending' : 'Active';
+        $barber->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Barber status updated successfully',
+            'data' => [
+                'email' => $barber->email,
+                'status' => $barber->status,
+            ],
+        ]);
     }
     
     
