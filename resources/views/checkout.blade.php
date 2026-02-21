@@ -518,11 +518,16 @@
 
 <pre id="debug"></pre>
 
-<script src="https://pi-test.sagepay.com/api/v1/js/sagepay.js"></script>
+<script
+  id="sagepay-sdk"
+  src="https://pi-test.sagepay.com/api/v1/js/sagepay.js"
+  onerror="window.__sagepayLoadError='Failed to load https://pi-test.sagepay.com/api/v1/js/sagepay.js'; window.__sagepayLoadErrorCode='SCRIPT_LOAD_ERROR';"
+></script>
 
 <script>
 (async function(){
   const orderId = {{ $order->id }};
+  const amount = {{ number_format($order->amount / 100, 2, '.', '') }};
   const appointmentId = {{ $appointment->id }};
   let msk = "{{ $merchantSessionKey }}";
   const DEBUG_MODE = {{ config('app.debug') ? 'true' : 'false' }};
@@ -573,9 +578,15 @@
 
   // Validate sagepay.js loaded
   if(!window.sagepayCheckout){
+    const sdkUrl = "https://pi-test.sagepay.com/api/v1/js/sagepay.js";
+    const sdkError = window.__sagepayLoadError || "sagepay.js did not initialize";
+    const likelyCause = navigator.onLine === false
+      ? "You appear to be offline."
+      : "Likely blocked by browser extension (ERR_BLOCKED_BY_CLIENT), CSP, or firewall.";
+    const technicalDetail = `${sdkError}. ${likelyCause} Check Network/Console for ${sdkUrl}`;
             const paymentData = {
             status: 'failed',
-            message: 'Payment system failed to load. Please check your internet connection and refresh.',
+            message: technicalDetail,
             orderId: orderId,
             amount: amount,
         };
@@ -584,8 +595,11 @@
         if (window.PaymentChannel) {
             window.PaymentChannel.postMessage(JSON.stringify(paymentData));
         }
-    showError("Payment system failed to load. Please check your internet connection and refresh.");
+    showError("Payment SDK failed to load. " + technicalDetail);
     debug("CRITICAL: sagepay.js not loaded");
+    debug("SDK URL:", sdkUrl);
+    debug("SDK error:", sdkError);
+    debug("Likely cause:", likelyCause);
     return;
   }
 
