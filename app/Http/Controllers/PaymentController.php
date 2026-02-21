@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
+use App\Models\Barber;
 use App\Models\Customer;
 use Illuminate\Http\Request;
 use App\Services\OpayoService;
 use App\Models\PaymentOrders as Order;
 use App\Models\Payment;
+use App\Models\Wallet;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -566,6 +568,24 @@ class PaymentController extends Controller
         }
 
         $order = Order::find($orderId);
+
+        $appointment = Appointment::find($order->appointment_id);
+        
+        $maxInv = Wallet::max('inv');
+
+        $nextInv = ($maxInv ?? 0) + 1;
+        
+        Wallet::create([
+            'user_id'        => $appointment->customer_id,
+            'barber_id'      => $appointment->barber_id,
+            'salon_id'       => $appointment->salon_id,
+            'appointment_id' => $appointment->id,
+            'inv'            => $nextInv,
+            'debit'          => floatval($order->amount) / 100,
+            'credit'         => 0,
+            'com_amount'     => 0,
+            'description'    => 'Appointment Booking Payment',
+        ]);
 
         if (!$order) {
             return redirect('/')->with('error', 'Order not found');
