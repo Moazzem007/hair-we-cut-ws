@@ -322,14 +322,15 @@ class CustomerController extends Controller
         $userid = Auth::user()->id;
 
         // Total Appointment
-        $appointmentspending  = Appointment::where('customer_id',$userid)->where('status','Pendding')->with('barber','salon','service','slot','rating')->orderBy('id','desc')->get();
-        $appointmentscom  = Appointment::where('customer_id',$userid)->where('status','!=','Pendding')->with('barber','salon','service','slot','rating')->orderBy('id','desc')->get();
-        $total_app     = Appointment::where('customer_id',$userid)->count();
-        $completed_app = Appointment::whereIn('status',['Completed','Review'])->where('customer_id', $userid)->count();
+        $appointmentspending  = Appointment::where('customer_id',$userid)->where('payment_status', 'paid')->where('status','Pendding')->with('barber','salon','service','slot','rating')->orderBy('id','desc')->get();
+        $appointmentscom  = Appointment::where('customer_id',$userid)->where('payment_status', 'paid')->where('status','!=','Pendding')->with('barber','salon','service','slot','rating')->orderBy('id','desc')->get();
+        $total_app     = Appointment::where('customer_id',$userid)->where('payment_status', 'paid')->count();
+        $completed_app = Appointment::whereIn('status',['Completed','Review'])->where('payment_status', 'paid')->where('customer_id', $userid)->count();
 
         $canceled_app = Appointment::where([
             'customer_id' => $userid,
-            'status'      => 'Canceled'
+            'status'      => 'Canceled',
+            'payment_status' => 'paid',
         ])->count();
 
         $order = Order::where('customer_id',$userid)->with('soldproduct.product.category')->get();

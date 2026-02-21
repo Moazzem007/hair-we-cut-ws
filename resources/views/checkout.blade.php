@@ -15,7 +15,7 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #FF9800 0%, #FF9800 100%);
       min-height: 100vh;
       padding: 20px;
     }
@@ -71,7 +71,7 @@
     .card-icon {
       width: 40px;
       height: 40px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #FF9800 0%, #FF9800 100%);
       border-radius: 8px;
       display: flex;
       align-items: center;
@@ -85,6 +85,29 @@
       font-size: 20px;
       font-weight: 600;
       color: #2d3748;
+    }
+
+    .payment-brand-icons {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .payment-brand-icons img {
+      height: 20px;
+      width: auto;
+      display: block;
+      object-fit: contain;
+    }
+
+    .customer-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: 15px;
+      object-fit: cover;
+      display: block;
     }
 
     .order-summary {
@@ -180,7 +203,7 @@
     #submit-button {
       width: 100%;
       padding: 16px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #FF9800 0%, #FF9800 100%);
       color: #fff;
       border: none;
       border-radius: 8px;
@@ -262,7 +285,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #FF9800 0%, #FF9800 100%);
       z-index: 9999;
       display: none;
       align-items: center;
@@ -343,6 +366,15 @@
         font-size: 18px;
       }
 
+      .payment-brand-icons img {
+        height: 18px;
+      }
+
+      .customer-avatar {
+        width: 35px;
+        height: 35px;
+      }
+
       .summary-row:last-child .summary-value {
         font-size: 20px;
       }
@@ -383,8 +415,12 @@
       <!-- Payment Section (Left) -->
       <div class="checkout-card">
         <div class="card-header">
-          <div class="card-icon">💳</div>
           <h2>Payment Details</h2>
+          <div class="payment-brand-icons" aria-label="Accepted cards">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/3/30/American_Express_logo.svg" alt="American Express">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa">
+          </div>
         </div>
 
         <div class="order-summary">
@@ -412,7 +448,7 @@
       <!-- Customer Information Section (Right) -->
       <div class="checkout-card">
         <div class="card-header">
-          <div class="card-icon">👤</div>
+          <img class="customer-avatar" src="https://cdn-icons-png.flaticon.com/512/4140/4140048.png" alt="Customer">
           <h2>Customer Information</h2>
         </div>
 

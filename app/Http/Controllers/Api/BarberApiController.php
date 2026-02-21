@@ -295,7 +295,7 @@ class BarberApiController extends Controller
     public function barberAppointment()
     {
         $userid = Auth::user()->id;
-        $appointments = Appointment::where('salon_id',$userid)->with('customer','service','slot','barber')->orderBy('date','desc')->get();
+        $appointments = Appointment::where('salon_id',$userid)->where('payment_status', 'paid')->with('customer','service','slot','barber')->orderBy('date','desc')->get();
 
         return  response()->json([
             'success' => true,
