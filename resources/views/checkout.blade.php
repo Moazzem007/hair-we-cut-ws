@@ -417,9 +417,9 @@
         <div class="card-header">
           <h2>Payment Details</h2>
           <div class="payment-brand-icons" aria-label="Accepted cards">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/3/30/American_Express_logo.svg" alt="American Express">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa">
+            <img src="https://img.icons8.com/color/48/amex.png" alt="American Express">
+            <img src="https://img.icons8.com/color/48/mastercard-logo.png" alt="Mastercard">
+            <img src="https://img.icons8.com/color/48/visa.png" alt="Visa">
           </div>
         </div>
 
