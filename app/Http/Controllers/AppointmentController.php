@@ -182,40 +182,40 @@ class AppointmentController extends Controller
                     Log::error('Failed to send appointment mail to user: ' . $currentUser->email . ' Error: ' . $e->getMessage());
                 }
 
-                if (!empty($currentUser->device_token)) {
-                    $this->fcmController->sendNotification(new \Illuminate\Http\Request([
-                        'token' => $currentUser->device_token,
-                        'title' => 'New Appointment',
-                        'body' => 'Your appointment has been booked.',
-                        'email' => $currentUser->email,
-                    ]));
-                }
+                // if (!empty($currentUser->device_token)) {
+                //     $this->fcmController->sendNotification(new \Illuminate\Http\Request([
+                //         'token' => $currentUser->device_token,
+                //         'title' => 'New Appointment',
+                //         'body' => 'Your appointment has been booked.',
+                //         'email' => $currentUser->email,
+                //     ]));
+                // }
 
                 $user = null;
                 if (!empty($barber->barber_of)) {
                     $user = Barber::find($barber->barber_of);
                 }
 
-                if ($user && !empty($user->device_token)) {
+                // if ($user && !empty($user->device_token)) {
 
-                    $this->fcmController->sendNotification(new \Illuminate\Http\Request([
-                        'token' => $user->device_token,
-                        'title' => 'New Appointment',
-                        'body' => 'You have a new appointment request.',
-                        'email' => $user->email,
-                    ]));
-                }
+                //     $this->fcmController->sendNotification(new \Illuminate\Http\Request([
+                //         'token' => $user->device_token,
+                //         'title' => 'New Appointment',
+                //         'body' => 'You have a new appointment request.',
+                //         'email' => $user->email,
+                //     ]));
+                // }
 
 
-                $customer = Customer::find($currentUser->id);
-                if ($customer && !empty($customer->device_token)) {
-                    $this->fcmController->sendNotification(new \Illuminate\Http\Request([
-                        'token' => $customer->device_token,
-                        'title' => 'New Appointment',
-                        'body' => 'Your appointment has been booked.',
-                        'email' => $customer->email,
-                    ]));
-                }
+                // $customer = Customer::find($currentUser->id);
+                // if ($customer && !empty($customer->device_token)) {
+                //     $this->fcmController->sendNotification(new \Illuminate\Http\Request([
+                //         'token' => $customer->device_token,
+                //         'title' => 'New Appointment',
+                //         'body' => 'Your appointment has been booked.',
+                //         'email' => $customer->email,
+                //     ]));
+                // }
                 // if (!empty($barber->device_token)) {
 
                 //     $this->fcmController->sendNotification(new \Illuminate\Http\Request([

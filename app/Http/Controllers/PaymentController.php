@@ -592,7 +592,7 @@ class PaymentController extends Controller
             $this->fcmController->sendNotification(new \Illuminate\Http\Request([
                 'token' => $user->device_token,
                 'title' => 'Payment Received',
-                'body' => 'Payment received for appointment.',
+                'body' => 'Payment received. You have a new appointment request.',
                 'email' => $user->email,
             ]));
         }
@@ -602,7 +602,7 @@ class PaymentController extends Controller
             $this->fcmController->sendNotification(new \Illuminate\Http\Request([
                 'token' => $customer->device_token,
                 'title' => 'Payment Received',
-                'body' => 'Payment received for appointment.',
+                'body' => 'Payment received. Appointment has been booked.',
                 'email' => $customer->email,
             ]));
         }
