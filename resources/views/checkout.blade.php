@@ -520,8 +520,8 @@
 
 <script
   id="sagepay-sdk"
-  src="https://pi-test.sagepay.com/api/v1/js/sagepay.js"
-  onerror="window.__sagepayLoadError='Failed to load https://pi-test.sagepay.com/api/v1/js/sagepay.js'; window.__sagepayLoadErrorCode='SCRIPT_LOAD_ERROR';"
+  src="https://sandbox.opayo.eu.elavon.com/api/v1/js/sagepay.js"
+  onerror="window.__sagepayLoadError='Failed to load https://sandbox.opayo.eu.elavon.com/api/v1/js/sagepay.js'; window.__sagepayLoadErrorCode='SCRIPT_LOAD_ERROR';"
 ></script>
 
 <script>
@@ -578,7 +578,7 @@
 
   // Validate sagepay.js loaded
   if(!window.sagepayCheckout){
-    const sdkUrl = "https://pi-test.sagepay.com/api/v1/js/sagepay.js";
+    const sdkUrl = "https://sandbox.opayo.eu.elavon.com/api/v1/js/sagepay.js";
     const sdkError = window.__sagepayLoadError || "sagepay.js did not initialize";
     const likelyCause = navigator.onLine === false
       ? "You appear to be offline."
