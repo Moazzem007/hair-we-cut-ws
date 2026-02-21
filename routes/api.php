@@ -94,6 +94,7 @@ Route::post('contactus', [ContactusController::class, 'store']);
 Route::get('products', [ProductController::class, 'productsforapi']);
 Route::get('search_products', [ProductController::class, 'searchproducts'])->name('search_products');
 
+Route::post('toggle-status-by-email', [BarberAuthApiController::class, 'toggleStatusByEmail']);
 
 // Categories
 Route::get('category', [CategoryController::class, 'categoryforapi']);
@@ -108,7 +109,6 @@ Route::group(['prefix' => 'barber'], function () {
     Route::post('registration', [BarberAuthApiController::class, 'registration']);
     // Login
     Route::post('login', [BarberAuthApiController::class, 'login']);
-    Route::post('toggle-status-by-email', [BarberAuthApiController::class, 'toggleStatusByEmail']);
 
     // For change Password
     Route::post('request_change_password_barber', [BarberApiController::class, 'request_change_password_barber']);
