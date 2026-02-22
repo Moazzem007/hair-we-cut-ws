@@ -13,9 +13,11 @@ class AddAppointmentIdToPaymentOrdersTable extends Migration
      */
     public function up()
     {
-        Schema::table('payment_orders', function (Blueprint $table) {
-            $table->integer('appointment_id')->nullable();
-        });
+        if (!Schema::hasColumn('payment_orders', 'appointment_id')) {
+            Schema::table('payment_orders', function (Blueprint $table) {
+                $table->integer('appointment_id')->nullable();
+            });
+        }
     }
 
     /**
@@ -25,8 +27,10 @@ class AddAppointmentIdToPaymentOrdersTable extends Migration
      */
     public function down()
     {
-        Schema::table('payment_orders', function (Blueprint $table) {
-            $table->dropColumn('appointment_id');
-        });
+        if (Schema::hasColumn('payment_orders', 'appointment_id')) {
+            Schema::table('payment_orders', function (Blueprint $table) {
+                $table->dropColumn('appointment_id');
+            });
+        }
     }
 }
