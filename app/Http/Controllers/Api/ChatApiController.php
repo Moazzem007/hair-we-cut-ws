@@ -162,9 +162,8 @@ class ChatApiController extends Controller
 
     public function barberMessages($appointmentId)
     {
-        $barberId = Auth::id();
+        
         $appointment = Appointment::where('id', $appointmentId)
-            ->where('barber_id', $barberId)
             ->where('payment_status', 'paid')
             ->first();
 
@@ -174,10 +173,11 @@ class ChatApiController extends Controller
                 'message' => 'Chat is only available for paid appointments.',
             ], 403);
         }
-
+        $barber = Barber::find($appointment->barber_id);
+        $barberId = Barber::find($barber->barber_of);
         $messages = ChatMessage::where('appointment_id', $appointment->id)
             ->where('customer_id', $appointment->customer_id)
-            ->where('barber_id', $appointment->barber_id)
+            ->where('barber_id', $barberId->id)
             ->latest('id')
             ->take(50)
             ->get()
