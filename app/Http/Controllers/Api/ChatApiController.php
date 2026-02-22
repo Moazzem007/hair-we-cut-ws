@@ -97,12 +97,12 @@ class ChatApiController extends Controller
             ->latest('id')
             ->take(50)
             ->get()
-            ->sortBy('id')
+            ->sortBy('created_at')
             ->values();
 
         return response()->json([
             'success' => true,
-            'data' => $messages,
+            'data' => $this->formatConversationForFrontend($messages),
         ]);
     }
 
@@ -181,12 +181,49 @@ class ChatApiController extends Controller
             ->latest('id')
             ->take(50)
             ->get()
-            ->sortBy('id')
+            ->sortBy('created_at')
             ->values();
 
         return response()->json([
             'success' => true,
-            'data' => $messages,
+            'data' => $this->formatConversationForFrontend($messages),
         ]);
+    }
+
+    private function formatConversationForFrontend($messages): array
+    {
+        $rows = [];
+        $openPair = null;
+
+        foreach ($messages as $msg) {
+            if ($msg->sender_type === 'customer') {
+                if ($openPair !== null) {
+                    $rows[] = $openPair;
+                }
+
+                $openPair = [
+                    'customer_message' => (string) $msg->message,
+                    'barber_reply' => "",
+                ];
+                continue;
+            }
+
+            if ($openPair !== null && $openPair['barber_reply'] === "") {
+                $openPair['barber_reply'] = (string) $msg->message;
+                $rows[] = $openPair;
+                $openPair = null;
+            } else {
+                $rows[] = [
+                    'customer_message' => "",
+                    'barber_reply' => (string) $msg->message,
+                ];
+            }
+        }
+
+        if ($openPair !== null) {
+            $rows[] = $openPair;
+        }
+
+        return $rows;
     }
 }
