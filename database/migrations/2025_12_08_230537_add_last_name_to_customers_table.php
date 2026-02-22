@@ -13,9 +13,11 @@ class AddLastNameToCustomersTable extends Migration
      */
     public function up()
     {
-        Schema::table('customers', function (Blueprint $table) {
-            $table->string('last_name')->nullable()->after('name');
-        });
+        if (!Schema::hasColumn('customers', 'last_name')) {
+            Schema::table('customers', function (Blueprint $table) {
+                $table->string('last_name')->nullable()->after('name');
+            });
+        }
     }
 
     /**
@@ -25,8 +27,10 @@ class AddLastNameToCustomersTable extends Migration
      */
     public function down()
     {
-        Schema::table('customers', function (Blueprint $table) {
-             $table->dropColumn('last_name');
-        });
+        if (Schema::hasColumn('customers', 'last_name')) {
+            Schema::table('customers', function (Blueprint $table) {
+                $table->dropColumn('last_name');
+            });
+        }
     }
 }
