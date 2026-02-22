@@ -128,7 +128,6 @@ class ChatApiController extends Controller
 
         $barberId = Auth::id();
         $appointment = Appointment::where('id', $request->appointment_id)
-            ->where('barber_id', $barberId)
             ->where('payment_status', 'paid')
             ->first();
 
