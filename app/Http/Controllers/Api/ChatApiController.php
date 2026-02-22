@@ -138,10 +138,13 @@ class ChatApiController extends Controller
             ], 403);
         }
 
+
+        $barber = Barber::find($appointment->barber_id);
+        $receiverBarber = Barber::find($barber->barber_of);
         $message = ChatMessage::create([
             'appointment_id' => $appointment->id,
             'customer_id' => $appointment->customer_id,
-            'barber_id' => $appointment->barber_id,
+            'barber_id' => $receiverBarber->id,
             'sender_type' => 'barber',
             'sender_id' => $barberId,
             'message' => trim($request->message),
