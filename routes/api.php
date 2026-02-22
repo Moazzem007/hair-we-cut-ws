@@ -62,6 +62,7 @@ use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\RefundController;
 use App\Http\Controllers\Api\OrderStatusController;
+use App\Http\Controllers\Api\ChatApiController;
 use App\Http\Controllers\PaymentController;
 
 /*
@@ -153,6 +154,8 @@ Route::group(['prefix' => 'barber'], function () {
         Route::post('updatepro_wallet', [BarberApiController::class, 'update_wallet'])->name('updatepro_wallet');
         Route::get('barber_notification', [BarberApiController::class, 'barber_notification'])->name('barber_notification');
         Route::get('barber_count_notification', [BarberApiController::class, 'barber_countnotification'])->name('barber_count_notification');
+        Route::get('chat/messages/{appointmentId}', [ChatApiController::class, 'barberMessages']);
+        Route::post('chat/send', [ChatApiController::class, 'barberSendMessage']);
 
         // Update Profile
         Route::post('updateprofile', [BarberApiController::class, 'updateprofile']);
@@ -315,6 +318,8 @@ Route::group(['prefix' => 'customer'], function () {
         Route::get('notification_appointment', [AppointmentController::class, 'notificationappointment'])->name('notification_appointment');
 	  Route::post('update-appointment/{id}', [AppointmentController::class, 'updateappointment'])->name('update-appointment');
         Route::get('count_notification', [AppointmentController::class, 'countnotification'])->name('count_notification');
+        Route::get('chat/messages/{appointmentId}', [ChatApiController::class, 'customerMessages']);
+        Route::post('chat/send', [ChatApiController::class, 'customerSendMessage']);
 
 
 
