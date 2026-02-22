@@ -49,10 +49,13 @@ class ChatApiController extends Controller
             ], 403);
         }
 
+        $barber = Barber::find($appointment->barber_id);
+        $receiverBarber = Barber::find($barber->barber_of);
+
         $message = ChatMessage::create([
             'appointment_id' => $appointment->id,
             'customer_id' => $appointment->customer_id,
-            'barber_id' => $appointment->barber_id,
+            'barber_id' => $receiverBarber->id,
             'sender_type' => 'customer',
             'sender_id' => $customerId,
             'message' => trim($request->message),
@@ -90,10 +93,12 @@ class ChatApiController extends Controller
                 'message' => 'Chat is only available for paid appointments.',
             ], 403);
         }
+        $barber = Barber::find($appointment->barber_id);
+        $receiverBarber = Barber::find($barber->barber_of);
 
         $messages = ChatMessage::where('appointment_id', $appointment->id)
             ->where('customer_id', $appointment->customer_id)
-            ->where('barber_id', $appointment->barber_id)
+            ->where('barber_id', $receiverBarber->id)
             ->latest('id')
             ->take(50)
             ->get()
