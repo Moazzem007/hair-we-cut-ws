@@ -590,7 +590,7 @@ class PaymentController extends Controller
 
         $customer = Customer::find($appointment->customer_id);
 
-        $barberSlot = BarberTimeSlot::where('slot_no', $appointment->slote_id)->first();
+        $barberSlot = BarberTimeSlot::where('slot_no', $appointment->slote_id)->where('barber_id', $appointment->barber_id)->first();
 
         $user = null;
         if (!empty($barber->barber_of)) {
