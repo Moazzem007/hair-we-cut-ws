@@ -590,12 +590,12 @@ class PaymentController extends Controller
 
         $customer = Customer::find($appointment->customer_id);
 
-        $barberSlot = BarberTimeSlot::where('id', $appointment->slote_id)->where('barber_id', $appointment->barber_id)->first();
-
+        
         $user = null;
         if (!empty($barber->barber_of)) {
             $user = Barber::find($barber->barber_of);
         }
+        $barberSlot = BarberTimeSlot::where('id', $appointment->slote_id)->where('barber_id', $barber->barber_of)->first();
 
         if ($user && !empty($user->device_token)) {
             $this->fcmController->sendNotification(new \Illuminate\Http\Request([
