@@ -34,7 +34,7 @@
                                     </tr>
                                     <tr>
                                         <td class="content-block">
-                                            Dear Customer, you have received a new appointment request. Here are the details:
+                                            Dear Customer, Your appointment has been successfully booked with the following details:
                                             <br><br>
                                             Salon: <strong>{{ $data['salon_name'] }}</strong> <br>
                                             From: <strong>{{ \Carbon\Carbon::parse($data['from_time'])->format('g:i A') }}</strong> <br>
