@@ -15,6 +15,11 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\FcmController;
+use App\Mail\BarberAppointment;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\BarberSignUp;
+use App\Mail\CustomerAppointment;
+use App\Models\BarberTimeSlot;
 
 class PaymentController extends Controller
 {
@@ -583,6 +588,10 @@ class PaymentController extends Controller
 
         $barber = Barber::find($appointment->barber_id);
 
+        $customer = Customer::find($appointment->customer_id);
+
+        $barberSlot = BarberTimeSlot::where('id', $appointment->slot_id)->first();
+
         $user = null;
         if (!empty($barber->barber_of)) {
             $user = Barber::find($barber->barber_of);
@@ -596,7 +605,23 @@ class PaymentController extends Controller
                 'email' => $user->email,
             ]));
         }
-        $customer = Customer::find($appointment->customer_id);
+        if ($user && !empty($user->email)) {
+           
+
+            $dataMail = array(
+                'name'     => $customer->name,
+                'last_name'     => $customer->last_name,
+                'from_time'     => $barberSlot->from_time,
+                'to_time'  => $barberSlot->to_time,
+            );
+            try {
+                    Mail::to($user->email)->send(new BarberAppointment($dataMail));
+                    Log::info('User appointment mail sent successfully to user: ' . $user->email);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send user appointment mail to user: ' . $user->email . ' Error: ' . $e->getMessage());
+                }
+        }
+        
 
         if ($customer && !empty($customer->device_token)) {
             $this->fcmController->sendNotification(new \Illuminate\Http\Request([
@@ -605,6 +630,20 @@ class PaymentController extends Controller
                 'body' => 'Payment received. Appointment has been booked.',
                 'email' => $customer->email,
             ]));
+        }
+
+        if ($customer && !empty($customer->email)) {
+            $dataMail = array(
+                'salon_name'     => $user->salon,
+                'from_time'     => $barberSlot->from_time,
+                'to_time'  => $barberSlot->to_time,
+            );
+            try {
+                    Mail::to($customer->email)->send(new CustomerAppointment($dataMail));
+                    Log::info('User appointment mail sent successfully to user: ' . $customer->email);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send user appointment mail to user: ' . $customer->email . ' Error: ' . $e->getMessage());
+                }
         }
 
 
