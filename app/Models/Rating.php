@@ -9,6 +9,15 @@ class Rating extends Model
 {
     use HasFactory;
 
+    protected $fillable = [
+        'user_id',
+        'barber_id',
+        'app_id',
+        'salon_id',
+        'rating',
+        'review',
+    ];
+
     public function appointment()
     {
         return $this->hasMany('App\Models\Appointment', 'id', 'app_id');
@@ -16,19 +25,19 @@ class Rating extends Model
 
     public function barber()
     {
-        return $this->belongsTo('App\Models\Barber','id');
+        return $this->belongsTo('App\Models\Barber', 'id');
     }
 
     public function customer()
     {
-        return $this->belongsTo('App\Models\Customer','user_id','id');
+        return $this->belongsTo('App\Models\Customer', 'user_id', 'id');
     }
-   public function user_info()
+    public function user_info()
     {
-        return $this->belongsTo('App\Models\Customer','user_id','id');
+        return $this->belongsTo('App\Models\Customer', 'user_id', 'id');
     }
- public function salon_info()
+    public function salon_info()
     {
-        return $this->hasMany('App\Models\Rating','salon_id','salon_id');
+        return $this->hasMany('App\Models\Rating', 'salon_id', 'salon_id');
     }
 }
