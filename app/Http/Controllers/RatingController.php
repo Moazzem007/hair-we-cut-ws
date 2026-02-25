@@ -113,12 +113,12 @@ class RatingController extends Controller
                 ], 404);
             }
 
-            if ($rating->user_id !== $user->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You can only update your own rating',
-                ], 403);
-            }
+            // if ($rating->user_id !== $user->id) {
+            //     return response()->json([
+            //         'success' => false,
+            //         'message' => 'You can only update your own rating',
+            //     ], 403);
+            // }
 
             $rating->rating = $request->value;
             $rating->review = $request->review;
