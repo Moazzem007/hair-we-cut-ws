@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Rating;
 use App\Models\Appointment;
-use App\Models\Barber;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
@@ -34,8 +33,6 @@ class RatingController extends Controller
             $user = Auth::user();
             $app  = Appointment::find($request->app_id);
 
-            $barber = Barber::find($app->barber_id);
-
             if (!$app) {
                 return response()->json([
                     'success' => false,
@@ -60,7 +57,7 @@ class RatingController extends Controller
 
             $row            = new Rating();
             $row->user_id   = $user->id;
-            $row->barber_id = $barber->barber_of;
+            $row->barber_id = $app->barber_id;
             $row->app_id    = $request->app_id;
             $row->salon_id  = $app->salon_id;
             $row->rating    = $request->value;
