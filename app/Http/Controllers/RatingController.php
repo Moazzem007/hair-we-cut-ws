@@ -190,6 +190,19 @@ class RatingController extends Controller
         }
     }
 
+    public function getAppointmentRating($app_id)
+    {
+        try {
+            $rating = Rating::where('app_id', $app_id)->get();
+            return response()->json($rating);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error'   => $e->getMessage(),
+            ]);
+        }
+    }
+
     /**
      * Get all ratings for a salon.
      */

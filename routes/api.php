@@ -345,6 +345,7 @@ Route::group(['prefix' => 'customer'], function () {
     Route::put('rating/{id}', [RatingController::class, 'update']);
     Route::delete('rating/{id}', [RatingController::class, 'destroy']);
     Route::get('getbarberrating/{id}', [RatingController::class, 'getbarberrating']);
+    Route::get('appointment-rating/{app_id}', [RatingController::class, 'getAppointmentRating']);
 
     // Check Token !is same or not
     Route::post('checktoken', [CustomerController::class, 'tokenupdate']);
