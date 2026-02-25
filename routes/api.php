@@ -146,6 +146,8 @@ Route::group(['prefix' => 'barber'], function () {
         // Barber Add Slot
         Route::get('deleteslot/{id}', [BarberApiController::class, 'deleteslot']);
 
+        Route::get('cancleApi/{id}', [AppointmentController::class, 'cancleApi']);
+        
         Route::post('/appointment-reschedule-request/{appointmentId}', [AppointmentRescheduleController::class, 'requestReschedule']);
         Route::get('/appointment-reschedules', [AppointmentRescheduleController::class, 'listBarberReschedules']);
         // Barber Apointments
