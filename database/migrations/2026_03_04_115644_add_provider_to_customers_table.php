@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AddAttachmentUrlToBarbersTable extends Migration
+class AddProviderToCustomersTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,8 +13,9 @@ class AddAttachmentUrlToBarbersTable extends Migration
      */
     public function up()
     {
-        Schema::table('barbers', function (Blueprint $table) {
-            $table->string('attachment_url')->nullable()->after('img');
+        Schema::table('customers', function (Blueprint $table) {
+            $table->string('provider')->nullable();
+            $table->string('provider_id')->nullable();
         });
     }
 
@@ -25,8 +26,9 @@ class AddAttachmentUrlToBarbersTable extends Migration
      */
     public function down()
     {
-        Schema::table('barbers', function (Blueprint $table) {
-            $table->dropColumn('attachment_url');
+        Schema::table('customers', function (Blueprint $table) {
+            $table->dropColumn('provider');
+            $table->dropColumn('provider_id');
         });
     }
 }

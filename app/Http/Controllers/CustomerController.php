@@ -17,7 +17,7 @@ use App\Models\AppointmentLog;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use App\Mail\UserSignUp;
-use Illuminate\Support\Facades\Log;
+
 use Stripe;
 
 
@@ -43,33 +43,23 @@ class CustomerController extends Controller
     {
         try {
 
-            // $role = [
+            $role = [
 
-            //     'token'     => 'required',
-            // ];
+                'token'     => 'required',
+            ];
 
-            // $validateData = Validator::make($request->all(),$role);
+            $validateData = Validator::make($request->all(),$role);
 
-            // if($validateData->fails()){
+            if($validateData->fails()){
 
-            //     return response()->json([
-            //         'message' => 'Invalid data send',
-            //         'Error' => $validateData->errors(),
-            //     ], 400);
+                return response()->json([
+                    'message' => 'Invalid data send',
+                    'Error' => $validateData->errors(),
+                ], 400);
 
-            // }
+            }
 
             $user = Auth::user();
-
-            if($request->token == null){
-                $user->device_token = null;
-                $user->update();
-                $result = 'Token Removed';
-                return response()->json([
-                    'success' => true,
-                    'message'   => $result,
-                ]);
-            }
 
             if($user->device_token != $request->token){
                 $user->device_token = $request->token;
@@ -139,6 +129,7 @@ class CustomerController extends Controller
                 'password'     => bcrypt($request->password),
                 'contact'      => $request->contact,
                 'device_token' => $token,
+                
             );
 
             $result = Customer::create($data);
@@ -152,12 +143,8 @@ class CustomerController extends Controller
             );
 
             if ($result){
-                try {
-                    Mail::to($request->email)->send(new UserSignUp($dataMail));
-                    Log::info('User sign-up mail sent successfully to user: ' . $request->email);
-                } catch (\Exception $e) {
-                    Log::error('Failed to send user sign-up mail to user: ' . $request->email . ' Error: ' . $e->getMessage());
-                }
+                Mail::to($request->email)->send(new UserSignUp($dataMail));
+
                 return response()->json([
                     'success' => true,
                     'Message' => "Customer Register",
@@ -181,16 +168,7 @@ class CustomerController extends Controller
 
         try {
 
-            $user = Auth::user();
-
-            $row = Customer::find($user->id);
-// return response()->json($row);
-            if ($request->input('billing_address')) {
-                $row->billing_address = $request->input('billing_address');
-            }
-            if ($request->input('postal_code')) {
-                $row->postal_code = $request->input('postal_code');
-            }
+            $row = Customer::find($request->id);
 
         if ($request->hasFile('image')) {
 
@@ -198,10 +176,7 @@ class CustomerController extends Controller
                 $filename=time().'.'.$file->getClientOriginalExtension();
                 $row->img=$request->file('image')->move('public/images',$filename);
             }
-            if ($request->input('name')) {
-                $row->name = $request->input('name');
-            }
-
+            $row->name = $request->name;
             $result    = $row->update();
 
 
@@ -322,15 +297,14 @@ class CustomerController extends Controller
         $userid = Auth::user()->id;
 
         // Total Appointment
-        $appointmentspending  = Appointment::where('customer_id',$userid)->where('payment_status', 'paid')->where('status','Pendding')->with('barber','salon','service','slot','rating')->orderBy('id','desc')->get();
-        $appointmentscom  = Appointment::where('customer_id',$userid)->where('payment_status', 'paid')->where('status','!=','Pendding')->with('barber','salon','service','slot','rating')->orderBy('id','desc')->get();
-        $total_app     = Appointment::where('customer_id',$userid)->where('payment_status', 'paid')->count();
-        $completed_app = Appointment::whereIn('status',['Completed','Review'])->where('payment_status', 'paid')->where('customer_id', $userid)->count();
+        $appointmentspending  = Appointment::where('customer_id',$userid)->where('status','Pendding')->with('barber','salon','service','slot','rating')->orderBy('id','desc')->get();
+        $appointmentscom  = Appointment::where('customer_id',$userid)->where('status','!=','Pendding')->with('barber','salon','service','slot','rating')->orderBy('id','desc')->get();
+        $total_app     = Appointment::where('customer_id',$userid)->count();
+        $completed_app = Appointment::whereIn('status',['Completed','Review'])->where('customer_id', $userid)->count();
 
         $canceled_app = Appointment::where([
             'customer_id' => $userid,
-            'status'      => 'Canceled',
-            'payment_status' => 'paid',
+            'status'      => 'Canceled'
         ])->count();
 
         $order = Order::where('customer_id',$userid)->with('soldproduct.product.category')->get();

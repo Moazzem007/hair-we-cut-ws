@@ -30,6 +30,6 @@ class AppointmentMail extends Mailable
      */
     public function build()
     {
-        return $this->from('hairwecut@gmail.com')->subject('Appoitnemt Request')->view('admin.Email.appoitment')->with('data',$this->data);
+        $this->from('hairwecut@gmail.com')->subject('Appoitnemt Request')->view('admin.Email.appoitment')->with('data',$this->data);
     }
 }

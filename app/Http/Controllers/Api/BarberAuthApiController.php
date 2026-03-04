@@ -44,36 +44,23 @@ class BarberAuthApiController extends Controller
     {
         try {
 
-            // $role = [
+            $role = [
                     
-            //     'token'     => 'required',
-            // ];
+                'token'     => 'required',
+            ];
 
-            // $validateData = Validator::make($request->all(),$role);
+            $validateData = Validator::make($request->all(),$role);
 
-            // if($validateData->fails()){
+            if($validateData->fails()){
 
-            //     return response()->json([
-            //         'message' => 'Invalid data send',
-            //         'Error' => $validateData->errors(),
-            //     ], 400);
+                return response()->json([
+                    'message' => 'Invalid data send',
+                    'Error' => $validateData->errors(),
+                ], 400);
 
-            // }
+            }
 
             $barber = Barber::where('id', Auth::user()->id)->first();
-            $user = User::find($barber->user_id);
-
-            if($request->token == null){
-                $barber->device_token = null;
-                $barber->update();
-                $user->device_token = null;
-                $user->update();
-                $result = 'Token Removed';
-                return response()->json([
-                    'success' => true,
-                    'message'   => $result,
-                ]);
-            }
             
 
 
@@ -82,6 +69,7 @@ class BarberAuthApiController extends Controller
                 $barber->device_token = $request->token;
                 $barber->update();
 
+                $user = User::find($barber->user_id);
                 $user->device_token = $request->token;
                 $user->update();
 
@@ -123,7 +111,6 @@ class BarberAuthApiController extends Controller
                 // 'postcode'=>'required',
                 // 'address2'=>'required',
                 'password' => 'required|confirmed|min:8',
-                'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:5120',
             ];
 
             $validateData = Validator::make($request->all(),$role);
@@ -146,17 +133,6 @@ class BarberAuthApiController extends Controller
 
             $user = User::create($userData);
 
-            $attachmentUrl = null;
-            if ($request->hasFile('attachment')) {
-                $destination = "/barberDoc";
-                $image_uploaded_path = $request->file('attachment')->store($destination, 'public');
-                $data['image'] = basename($image_uploaded_path);
-
-                $filename = basename($image_uploaded_path); // 1771617275_6998bbfbbeb28.pdf
-
-                $attachmentUrl = 'barbers/attachments/' . $filename;
-            }
-
             $data = array(
                 'name'     => $request->name,
                 'email'    => $request->email,
@@ -170,7 +146,6 @@ class BarberAuthApiController extends Controller
                 'salon'    => $request->salon,
                 'user_id'  => $user->id,
                 'password' => bcrypt($request->password),
-                'attachment_url' => $attachmentUrl,
             );
             $result = Barber::create($data);
 
@@ -205,8 +180,6 @@ class BarberAuthApiController extends Controller
 
 
 
-
-
     public function login(Request $request){
 
         $loginData = $request->validate([
@@ -229,43 +202,6 @@ class BarberAuthApiController extends Controller
         $user = Auth::user();
 
         return response()->json($user);
-    }
-
-    public function toggleStatusByEmail(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid data send',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $barber = Barber::where('email', $request->email)->first();
-
-        if (!$barber) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Barber not found',
-            ], 404);
-        }
-
-        $currentStatus = strtolower((string) $barber->status);
-        $barber->status = $currentStatus === 'Active' ? 'Pending' : 'Active';
-        $barber->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Barber status updated successfully',
-            'data' => [
-                'email' => $barber->email,
-                'status' => $barber->status,
-            ],
-        ]);
     }
     
     
@@ -314,9 +250,100 @@ class BarberAuthApiController extends Controller
        
     }
 
+    /**
+     * Social Login for Barber
+     *
+     * @param  \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function socialLogin(Request $request)
+    {
+        $role = [
+            'provider'    => 'required|string',
+            'provider_id' => 'required|string',
+            'email'       => 'required|email',
+            'name'        => 'required|string',
+        ];
 
+        $validateData = Validator::make($request->all(), $role);
 
+        if($validateData->fails()){
+            return response()->json([
+                'message' => 'Invalid data send',
+                'Error'   => $validateData->errors(),
+            ], 400);
+        }
 
+        try {
+            // Check if barber exists by provider_id
+            $barber = Barber::where('provider_id', $request->provider_id)
+                            ->where('provider', $request->provider)
+                            ->first();
 
-    
+            // If not found by provider_id, check by email
+            if (!$barber) {
+                $barber = Barber::where('email', $request->email)->first();
+            }
+
+            // If still not found, create new barber and user
+            if (!$barber) {
+                $password = bcrypt(\Illuminate\Support\Str::random(16));
+                
+                $userData = array(
+                    'name'     => $request->name,
+                    'email'    => $request->email,
+                    'password' => $password,
+                    'type'     => 'Barber',
+                );
+
+                $user = User::create($userData);
+
+                $data = array(
+                    'name'        => $request->name,
+                    'email'       => $request->email,
+                    'contact'     => $request->contact ?? '',
+                    'address'     => $request->address ?? '',
+                    'salon'       => $request->salon ?? '',
+                    'user_id'     => $user->id,
+                    'password'    => $password,
+                    'provider'    => $request->provider,
+                    'provider_id' => $request->provider_id,
+                );
+                
+                $barber = Barber::create($data);
+            } else {
+                // Update provider info if logging in via social with existing email
+                if (empty($barber->provider_id)) {
+                    $barber->update([
+                        'provider'    => $request->provider,
+                        'provider_id' => $request->provider_id,
+                    ]);
+                }
+            }
+
+            // Also update token if supplied
+            if ($request->token && $barber->device_token !== $request->token) {
+                $barber->update(['device_token' => $request->token]);
+                
+                // Update user device token as well
+                $user = User::find($barber->user_id);
+                if ($user) {
+                    $user->update(['device_token' => $request->token]);
+                }
+            }
+
+            // Log the barber in and get token
+            $token = auth('barber')->login($barber);
+
+            return response()->json([
+                'token' => $token
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'Error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

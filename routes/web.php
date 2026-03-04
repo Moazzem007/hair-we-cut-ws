@@ -29,9 +29,7 @@ use App\Http\Controllers\marketplace;
 use App\Http\Controllers\jobapplycontroller;
 use App\Http\Controllers\outsidemarketplace;
 use App\Http\Controllers\onboardingcontroller;
-use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\Web\CheckoutPageController;
-use App\Http\Controllers\Web\PaymentReturnController;
+
 
 
 
@@ -59,7 +57,7 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name
 
 Route::group(['middleware' => ['auth']], function () {
     // Edit Profile Route
-
+    
     Route::get('/barbersajax/{id}', [BarberController::class, 'barbersajax'])->name('barbersajax');
 
 
@@ -99,7 +97,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('disabledstatus/{id}', [BarberController::class,'disabledstatus'])->name('disabledstatus');
         // Active Status
         Route::get('activestatus/{id}', [BarberController::class,'activestatus'])->name('activestatus');
-
+        
         // Barber Profiler Routes  ProfileController
         Route::get('profile', [ProfileController::class,'index'])->name('profile');
         Route::get('barberprofileadmin/{id}', [ProfileController::class,'barberprofileadmin'])->name('barberprofileadmin');
@@ -172,7 +170,7 @@ Route::group(['middleware' => ['auth']], function () {
 
      // Add Products
      Route:: resource('adminproducts',ProductController::class);
-
+     
      Route:: post('productstore', [ProductController::class,'store'])->name('productstore');
     //  Stock Routes
      Route:: get('stocklist', [ProductController::class,'stocklist'])->name('stocklist');
@@ -257,7 +255,7 @@ Route::post('storeeditproduct', [marketplace::class,'editmarket'])->name('storee
 // list all products
 Route::get('marketallproducts', [marketplace::class,'marketallproduct'])->name('marketallproducts');
 
-// market place view
+// market place view 
     // view market place product
     Route::get('marketproduct_view/{id}',[marketplace::class, 'marketplace_productview'])->name('marketproduct_view');
     Route::get('marketrent_view/{id}',[marketplace::class, 'marketplace_rentview'])->name('marketrent_view');
@@ -269,14 +267,14 @@ Route::get('marketallproducts', [marketplace::class,'marketallproduct'])->name('
     Route::post('storepersonalinfo', [jobapplycontroller::class,'storeinfo'])->name('storepersonalinfo');
     Route::get('editpersonalinfo', [jobapplycontroller::class,'editjobinfo'])->name('editpersonalinfo');
     Route::post('storeeditpersonalinfo', [jobapplycontroller::class,'storeinfoupdate'])->name('storeeditpersonalinfo');
-
+    
     //    //   job apply
     Route::get('getjobdata/{id}', [jobapplycontroller::class,'getjobdata'])->name('getjobdata');
     Route::post('jobapplynow', [jobapplycontroller::class,'jobapplynow'])->name('jobapplynow');
     Route::get('getappliedjobs', [jobapplycontroller::class,'getappliedjobs'])->name('getappliedjobs');
-
+    
     // Route::get('getjobapplication/{id}', [parsonalinfoforjobandapply::class,'getapplication'])->name('getjobapplication');
-
+ 
 
        //    //   onboarding screens
        Route::get('boarding_screen', [onboardingcontroller::class,'index'])->name('boarding_screen');
@@ -285,8 +283,8 @@ Route::get('marketallproducts', [marketplace::class,'marketallproduct'])->name('
        Route::get('boarding_home_screen', [onboardingcontroller::class,'homeimage'])->name('boarding_home_screen');
        Route::post('storeonboarding_home_image', [onboardingcontroller::class,'homescreenimage'])->name('storeonboarding_home_image');
        Route::get('deleteonboardinghome/{id}', [onboardingcontroller::class,'deletehomeimage'])->name('deleteonboardinghome');
-
-
+       
+    
 
 
 
@@ -318,20 +316,3 @@ Route::get('outsidemarket', [outsidemarketplace::class,'marketpage'])->name('out
 // Route::get('deletemarketproduct/{id}', [marketplace::class,'deleteproduct'])->name('deletemarketproduct');
 // Route::get('editmarketproduct/{id}', [marketplace::class,'editmarketproduct'])->name('editmarketproduct');
 // Route::post('storeeditproduct', [marketplace::class,'editmarket'])->name('storeeditproduct');
-// Route::get('/checkout/{order}', [CheckoutPageController::class,'show']); // serves HTML + opayoCheckout
-// Route::get('/payment-return', [PaymentReturnController::class,'handle']);
-
-
-Route::get('/checkout/{order}/{appointment}', [PaymentController::class,'checkoutPage'])->name('checkout.page');
-Route::post('/payment-return', [PaymentController::class,'paymentReturn']); // optional callback/return page
-Route::post('/3ds-notification', [PaymentController::class, 'handle3DSNotification'])
-     ->name('3ds-notification');
-
-Route::post('/opayo/callback', [PaymentController::class, 'handleCallback']);
-
-// Payment result pages
-Route::get('/payment/success', [PaymentController::class, 'paymentSuccess'])
-    ->name('payment.success');
-    
-Route::get('/payment/failed', [PaymentController::class, 'paymentFailed'])
-    ->name('payment.failed');

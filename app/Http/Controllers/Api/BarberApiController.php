@@ -160,53 +160,9 @@ class BarberApiController extends Controller
         try {
             $slots = BarberTimeSlot::where('barber_id',Auth::user()->user_id)->with('barber')->get();
 
-            return response()->json([
-                'success' => true,
-                'data'    => $slots,
-                'status'  => 200,
-            ]);
+            return response()->json($slots);
 
-        } catch (\Exception $e) {
-            return  response()->json([
-                'success' => false,
-                'Error'   => $e->getMessage(),
-            ]);
-        }
-    }
-
-    // check available slots
-    public function checkavailableslots()
-    {
-        $barberId = Auth::user()->id;
-        try {
-            $slots = BarberTimeSlot::where('barber_id',$barberId)->where('status', 'Avalible')->get();
-
-            return response()->json([
-                'success' => true,
-                'data'    => $slots,
-                'status'  => 200,
-            ]);
-
-        } catch (\Exception $e) {
-            return  response()->json([
-                'success' => false,
-                'Error'   => $e->getMessage(),
-            ]);
-        }
-    }
-
-    public function checkavailableslotsForCustomer($barberId)
-    {
-        try {
-            $slots = BarberTimeSlot::where('barber_id',$barberId)->where('status', 'Avalible')->get();
-
-            return response()->json([
-                'success' => true,
-                'data'    => $slots,
-                'status'  => 200,
-            ]);
-
-        } catch (\Exception $e) {
+        } catch (\Excetion $e) {
             return  response()->json([
                 'success' => false,
                 'Error'   => $e->getMessage(),
@@ -237,7 +193,7 @@ class BarberApiController extends Controller
             }
 
             $data = array(
-                'barber_id' => Auth::user()->id,
+                'barber_id' => Auth::user()->user_id,
                 'slot_no'   => $request->slot_no,
                 'from_time' => $request->from_time,
                 'to_time'   => $request->to_time,
@@ -295,7 +251,7 @@ class BarberApiController extends Controller
     public function barberAppointment()
     {
         $userid = Auth::user()->id;
-        $appointments = Appointment::where('salon_id',$userid)->where('payment_status', 'paid')->with('customer','service','slot','barber')->orderBy('date','desc')->get();
+        $appointments = Appointment::where('salon_id',$userid)->with('customer','service','slot','barber')->orderBy('date','desc')->get();
 
         return  response()->json([
             'success' => true,
