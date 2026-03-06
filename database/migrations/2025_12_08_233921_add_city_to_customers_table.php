@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AddProviderToBarbersTable extends Migration
+class AddCityToCustomersTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,9 +13,8 @@ class AddProviderToBarbersTable extends Migration
      */
     public function up()
     {
-        Schema::table('barbers', function (Blueprint $table) {
-            $table->string('provider')->nullable();
-            $table->string('provider_id')->nullable();
+        Schema::table('customers', function (Blueprint $table) {
+            $table->string('city')->nullable(); 
         });
     }
 
@@ -26,9 +25,8 @@ class AddProviderToBarbersTable extends Migration
      */
     public function down()
     {
-        Schema::table('barbers', function (Blueprint $table) {
-            $table->dropColumn('provider');
-            $table->dropColumn('provider_id');
+        Schema::table('customers', function (Blueprint $table) {
+            $table->dropColumn('city');
         });
     }
 }

@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
-class AppointmentMail extends Mailable
+class CustomerAppointment extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -16,7 +16,9 @@ class AppointmentMail extends Mailable
      *
      * @return void
      */
-    public $data;
+
+     public $data;
+
     public function __construct($data)
     {
         //
@@ -30,6 +32,7 @@ class AppointmentMail extends Mailable
      */
     public function build()
     {
-        return $this->from('hairwecut@gmail.com')->subject('Appoitnemt Request')->view('admin.Email.appoitment')->with('data',$this->data);
+        // return $this->view('view.name');
+        return $this->from('hairwecut@gmail.com')->subject('New Appointment Request')->view('customer.Email.customerappointment')->with('data',$this->data);
     }
 }

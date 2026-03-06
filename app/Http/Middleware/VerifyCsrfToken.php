@@ -12,6 +12,6 @@ class VerifyCsrfToken extends Middleware
      * @var array
      */
     protected $except = [
-        //
+        '/3ds-notification', // Exclude Opayo 3DS callback
     ];
 }
