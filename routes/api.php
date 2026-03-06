@@ -34,6 +34,7 @@ use App\Http\Controllers\ContactusController;
 
 // APPOINTMENT CONTROLLER
 use App\Http\Controllers\CustomerAuthController;
+use App\Http\Controllers\SocialAuthController;
 
 // Cateogry
 use App\Http\Controllers\CustomerController;
@@ -271,6 +272,10 @@ Route::group(['prefix' => 'customer'], function () {
 
   // CUSTOMER Login
   Route::post('login', [CustomerAuthController::class, 'login']);
+
+  // Social Login (Google & Facebook)
+  Route::post('google-login', [SocialAuthController::class, 'googleLogin']);
+  Route::post('facebook-login', [SocialAuthController::class, 'facebookLogin']);
 
   Route::post('barbersforhome', [BarberController::class, 'barbersforhome']);
 

@@ -15,7 +15,7 @@ class Customer extends Authenticatable implements JWTSubject
     use Notifiable;
 
     protected $guarded = [];
-    protected $hidden = ['email','password'];
+    protected $hidden = ['email','password','google_id','facebook_id'];
     
     /**
      * Get the identifier that will be stored in the subject claim of the JWT.

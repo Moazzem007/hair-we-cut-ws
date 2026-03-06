@@ -12,6 +12,7 @@ use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SignupController;
 use App\Http\Controllers\UserDashboardController;
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\Api\subscriptioncontroller as ApiSubscriptioncontroller;
 use App\Http\Controllers\ContactusController;
 use App\Http\Controllers\ProductDashController;
 use App\Http\Controllers\BarberProductController;
