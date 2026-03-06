@@ -276,6 +276,7 @@ Route::group(['prefix' => 'customer'], function () {
   // Social Login (Google & Facebook)
   Route::post('google-login', [SocialAuthController::class, 'googleLogin']);
   Route::post('facebook-login', [SocialAuthController::class, 'facebookLogin']);
+  Route::post('apple-login', [SocialAuthController::class, 'appleLogin']);
 
   Route::post('barbersforhome', [BarberController::class, 'barbersforhome']);
 
