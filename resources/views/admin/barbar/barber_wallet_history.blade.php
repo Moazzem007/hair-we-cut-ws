@@ -68,24 +68,30 @@
                                     @php
                                         $bal2 = 0;
                                     @endphp
-                                    @foreach ($barber->wallet as $key => $pay)
+                                    @if($barber && $barber->wallet && $barber->wallet->count() > 0)
+                                        @foreach($barber->wallet as $index => $pay)
                                         <tr>
-                                            <td>{{ $key + 1 }}</td>
-                                            <td>{{ $pay->inv }}</td>
-                                            <td>{{ $pay->created_at->format('d/m/Y') }}</td>
-                                            <td>{{ $pay->description }}</td>
-                                            <td>{{ $pay->debit }}</td>
-                                            <td>{{ $pay->credit }}</td>
+                                            <td>{{ $index + 1 }}</td>
+                                            <td>#{{ $pay->inv }}</td>
+                                            <td>{{ $pay->created_at->format('M d, Y') }}</td>
+                                            <td>{{ $pay->description ?? 'Transaction' }}</td>
+                                            <td class="text-danger">{{ $pay->debit > 0 ? '-$'.$pay->debit : '-' }}</td>
+                                            <td class="text-success">{{ $pay->credit > 0 ? '+$'.$pay->credit : '-' }}</td>
                                             <td>
                                                 @php
-                                                    $bal = $pay->debit - $pay->credit;
+                                                    $bal = $pay->credit - $pay->debit;
                                                     $bal2 += $bal;
                                                 @endphp
-                                                {{ $bal2 }}
+                                                <strong>${{ number_format($bal2, 2) }}</strong>
                                             </td>
                                         </tr>
-                                    @endforeach
-                                </tbody>
+                                        @endforeach
+                                        @else
+                                            <tr>
+                                                <td colspan="7" class="text-center">No wallet records found or invalid partner reference.</td>
+                                            </tr>
+                                        @endif
+                                    </tbody>
                             </table>
 
                         </div>

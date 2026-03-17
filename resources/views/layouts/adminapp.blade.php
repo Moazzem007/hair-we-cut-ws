@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <html>
 
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>HAIR-WE-CUT</title>
-<link rel="icon" href="{{ asset('public/favicon.ico') }}">
-<link href="{{ asset('admin/css/bootstrap.min.css') }}" rel="stylesheet">
-<link href="{{ asset('admin/font-awesome/css/font-awesome.css') }}" rel="stylesheet">
+    <title>Hair We Cut | Admin Panel</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="{{ asset('favicon.ico') }}">
+    <link href="{{ asset('admin/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ asset('admin/font-awesome/css/font-awesome.css') }}" rel="stylesheet">
 
 <link href="{{ asset('admin/css/plugins/iCheck/custom.css') }}" rel="stylesheet">
 
@@ -37,7 +40,7 @@
 
 <link href="{{ asset('admin/css/plugins/daterangepicker/daterangepicker-bs3.css') }}" rel="stylesheet">
 
-<link href="{{ asset('admin/css/plugins/select2/select2.min.css" rel="stylesheet') }}">
+    <link href="{{ asset('admin/css/plugins/select2/select2.min.css') }}" rel="stylesheet">
 
 <link href="{{ asset('admin/css/plugins/touchspin/jquery.bootstrap-touchspin.min.css') }}" rel="stylesheet">
 
@@ -46,10 +49,162 @@
 <!-- FooTable -->
 <link href="{{ asset('admin/css/plugins/footable/footable.core.css') }}" rel="stylesheet">
 
-<link href="{{ asset('admin/css/animate.css') }}" rel="stylesheet">
-<link href="{{ asset('admin/css/style.css') }}" rel="stylesheet">
+    <link href="{{ asset('admin/css/animate.css') }}" rel="stylesheet">
+    <link href="{{ asset('admin/css/style.css') }}" rel="stylesheet">
+    <link href="{{ asset('admin/css/premium_admin.css') }}" rel="stylesheet">
 
 
+    <style>
+        :root {
+            --primary: #9b7a5a; /* A brownish-gold accent for buttons based on the image's "MAKE APPOINTMENT" button */
+            --primary-dark: #816548;
+            --secondary: #2c2f33;
+            --secondary-light: #3a3d42;
+            --accent: #ff0080;
+            --bg-body: #f8fafc;
+            --bg-sidebar: #2f3439; /* Dark gray/brown background from the image */
+            --glass: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --white: #ffffff;
+            --success: #10b981;
+            --info: #3b82f6;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --shadow-sm: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif !important;
+            background-color: var(--bg-body) !important;
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        #wrapper {
+            background-color: var(--bg-sidebar);
+        }
+
+        /* Sidebar Modernization */
+        .navbar-static-side {
+            background: var(--bg-sidebar) !important;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+        }
+
+        .nav > li > a {
+            color: #d1d5db !important; /* Lighter text for the dark background */
+            font-weight: 500;
+            padding: 12px 25px;
+            margin: 4px 12px;
+            border-radius: var(--radius-md);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav > li.active > a, .nav > li > a:hover {
+            background: rgba(155, 122, 90, 0.15) !important; /* Soft brown/gold hover */
+            color: white !important;
+        }
+
+        .nav > li.active > a {
+            color: #ffffff !important;
+            background: var(--primary) !important; /* Use the new primary accent color */
+            box-shadow: 0 4px 12px rgba(155, 122, 90, 0.3); /* Match shadow with new primary */
+        }
+
+        /* Global Table & Dropdown Fixes */
+        .table-responsive {
+            overflow: visible !important;
+            padding-bottom: 20px;
+        }
+        #page-wrapper { overflow-x: visible !important; }
+        .ibox, .ibox-content { overflow: visible !important; }
+
+        /* Standardize dropdown menu appearance and positioning */
+        .dropdown-menu {
+            border-radius: 8px !important;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+            border: 1px solid #eee !important;
+            padding: 5px 0 !important;
+            z-index: 2000 !important;
+        }
+
+        .dropdown-menu-right {
+            right: 0 !important;
+            left: auto !important;
+        }
+
+        /* Ensure responsive tables don't clip on small screens while maintaining visibility */
+        @media (max-width: 768px) {
+            .table-responsive {
+                overflow-x: auto !important;
+            }
+        }
+
+        .nav-header {
+            background: transparent !important;
+            padding: 35px 25px !important;
+            text-align: center;
+        }
+
+        .img-circle {
+            border: 3px solid rgba(255,255,255,0.1);
+            padding: 3px;
+            transition: transform 0.3s;
+        }
+
+        .img-circle:hover {
+            transform: scale(1.05);
+        }
+
+        /* Glassmorphism Classes */
+        .premium-card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            transition: transform 0.3s;
+        }
+
+        .premium-card:hover {
+            transform: translateY(-5px);
+        }
+
+        /* Navbar & Content Styling */
+        .navbar-default.navbar-static-top {
+            background: rgba(248, 250, 252, 0.8) !important;
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid #e2e8f0 !important;
+            padding: 10px 0;
+        }
+
+        #page-wrapper {
+            background: var(--bg-body) !important;
+            min-height: 100vh !important;
+        }
+
+        .footer {
+            background: transparent !important;
+            border: none !important;
+            padding: 20px 40px !important;
+            color: var(--text-muted);
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+    </style>
 </head>
 
 <body class="fixed-navigation">
@@ -57,54 +212,72 @@
         <nav class="navbar-default navbar-static-side" role="navigation">
             <div class="sidebar-collapse">
                 <ul class="nav metismenu" id="side-menu">
-                    <li class="nav-header">
-                        <div class="dropdown profile-element"> <span>
-                                <img alt="image" class="" src="{{ asset('logo.png') }}" width="80" />
+                    <li class="nav-header" style="border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px;">
+                        <div class="dropdown profile-element">
+                            <span>
+                                <img alt="image" class="img-circle" src="{{ asset('logo.png') }}" 
+                                     style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 15px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));" />
                             </span>
+                            <a data-toggle="dropdown" class="dropdown-toggle" href="#">
+                                <span class="clear"> 
+                                    <span class="block m-t-xs"> 
+                                        <strong class="font-bold" style="color: white; font-size: 16px; letter-spacing: 0.5px;">Admin Control</strong>
+                                    </span> 
+                                    <span class="text-muted text-xs block" style="opacity: 0.6;">Hair We Cut Platform <b class="caret"></b></span>
+                                </span> 
+                            </a>
+                            <ul class="dropdown-menu animated fadeInRight m-t-xs">
+                                <li>
+                                    <form action="{{ route('logout') }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="btn btn-link" style="color: inherit; text-decoration: none; padding: 3px 20px;">Logout</button>
+                                    </form>
+                                </li>
+                            </ul>
                         </div>
                     </li>
 
-                    <li class="active">
-                        <a href="{{ route('adminDashboard') }}"><i class="fa fa-th-large"></i> <span
-                                class="nav-label">Dashboard</span></a>
+                    <!-- Overview -->
+                    <li class="{{ Request::is('admin/dashboard*') ? 'active' : '' }}">
+                        <a href="{{ route('adminDashboard') }}"><i class="fa fa-th-large"></i> <span class="nav-label">Overview</span></a>
                     </li>
 
-                    <li><a href="{{ route('barbers.index') }}"><i class="fa fa-cut"></i> <span
-                                class="nav-label">Barbers</span></a></li>
+                    <!-- Pending Approvals -->
+                    <li class="{{ request('status') == 'Pending' || request('status') == 'Pendding' ? 'active' : '' }}">
+                        <a href="{{ route('barbers.index', ['status' => 'Pending']) }}">
+                            <i class="fa fa-user-plus"></i> <span class="nav-label">Pending Approvals</span>
+                            @php
+                                $pendingCount = App\Models\Barber::whereIn('status', ['Pending', 'Pendding'])->count();
+                            @endphp
+                            @if($pendingCount > 0)
+                                <span class="label label-warning pull-right" style="margin-top: 2px;">{{ $pendingCount }}</span>
+                            @endif
+                        </a>
+                    </li>
+                    <!-- Operations -->
+                    <li class="{{ Request::is('admin/appointment*') || Request::is('admin/service*') || Request::is('admin/commission*') || Request::is('admin/category*') || Request::is('admin/product*') || Request::is('admin/wallet*') ? 'active' : '' }}">
+                        <a href="#"><i class="fa fa-calendar"></i> <span class="nav-label">Operations</span><span class="fa arrow"></span></a>
+                        <ul class="nav nav-second-level collapse">
+                            <li><a href="{{ route('appointment.index') }}">Bookings</a></li>
+                            <li><a href="{{ route('services.index') }}">Services</a></li>
+                            <li><a href="{{ route('commission.index') }}">Commissions</a></li>
+                            <li><a href="{{ route('category.index') }}">Categories</a></li>
+                            <li><a href="{{ route('productdash.index') }}">Marketplace</a></li>
+                            <li><a href="{{ route('adminproductorder') }}">Orders</a></li>
+                            <li><a href="{{ url('wallet') }}">Financial Wallets</a></li>
+                        </ul>
+                    </li>
 
+                    <!-- Job Portal -->
+                    <li class="{{ Request::is('admin/list-job*') ? 'active' : '' }}">
+                        <a href="#"><i class="fa fa-briefcase"></i> <span class="nav-label">Portals</span><span class="fa arrow"></span></a>
+                        <ul class="nav nav-second-level collapse">
+                            <li><a href="{{ route('listjobsadmin') }}">Job Board</a></li>
+                        </ul>
+                    </li>
 
-                    <li><a href="{{ route('appointment.index') }}"><i class="fa fa-book"></i> <span
-                                class="nav-label">Appointnemts</span></a></li>
+                    <!-- Digital Content removed -->
 
-                    <li><a href="{{ route('commission.index') }}"><i class="fa fa-list"></i> <span
-                                class="nav-label">Commission</span></a></li>
-
-
-                    <li><a href="{{ route('category.index') }}"><i class="fa fa-tree"></i> <span
-                                class="nav-label">Categories</span></a></li>
-
-
-
-                    <li><a href="{{ route('productdash.index') }}"><i class="fa fa-cubes"></i> <span
-                                class="nav-label">Product</span></a></li>
-                    <li><a href="{{ route('adminproductorder') }}"><i class="fa fa-shopping-cart"></i> <span
-                                class="nav-label">Product Order</span></a></li>
-                    <li><a href="{{ route('barberproductorder') }}"><i class="fa fa-users"></i> <span
-                                class="nav-label">Barber Order</span></a></li>
-                    <li><a href="{{ url('wallet') }}"><i class="fa fa-google-wallet"></i> <span
-                                class="nav-label">Wallet</span></a></li>
-                    <li><a href="{{ route('productwallet') }}"><i class="fa fa-google-wallet"></i> <span
-                                class="nav-label">Product Wallet</span></a></li>
-                    <li><a href="{{ route('listjobsadmin') }}"><i class="fa fa-briefcase"></i>
-                            <span class="nav-label">Job Portal</span></a></li>
-                    <li><a href="{{ route('marketplacerentadmin') }}"><i class="fa fa-shopping-cart"></i>
-                            <span class="nav-label">Market Place</span></a></li>
-
-                    <li><a href="{{ route('boarding_screen') }}"><i class="fa fa-shopping-cart"></i>
-                            <span class="nav-label">Onboarding Screens</span></a></li>
-
-                    <li><a href="{{ route('contactus.index') }}"><i class="fa fa-envelope"></i> <span
-                                class="nav-label">Contact Us</span></a></li>
 
 
                 </ul>
@@ -114,72 +287,17 @@
 
         <div id="page-wrapper" class="gray-bg sidebar-content">
             <div class="row border-bottom">
-                <nav class="navbar navbar-static-top white-bg" role="navigation" style="margin-bottom: 0">
+                <nav class="navbar navbar-static-top" role="navigation" style="margin-bottom: 0">
                     <div class="navbar-header">
                         <a class="navbar-minimalize minimalize-styl-2 btn btn-primary " href="#"><i
                                 class="fa fa-bars"></i> </a>
-                        <form role="search" class="navbar-form-custom" action="search_results.html">
-                            <div class="form-group">
-                                <input type="text" placeholder="Search for something..." class="form-control"
-                                    name="top-search" id="top-search">
-                            </div>
-                        </form>
+                        <!-- Search bar removed -->
                     </div>
                     <ul class="nav navbar-top-links navbar-right">
                         <li>
                             <span class="m-r-sm text-muted welcome-message"> Hair We Cut Dashboard</span>
                         </li>
-                        <li class="dropdown">
-                            <a class="dropdown-toggle count-info" data-toggle="dropdown" href="#">
-
-                                <i class="fa fa-envelope"></i>
-
-                                <span
-                                    class="label label-warning">{{ App\Models\Contactus::where('status', 1)->count() }}</span>
-                            </a>
-                        </li>
-                        <li class="dropdown">
-                            <a class="dropdown-toggle count-info" data-toggle="dropdown" href="#">
-                                <i class="fa fa-bell"></i> <span class="label label-primary">8</span>
-                            </a>
-                            <ul class="dropdown-menu dropdown-alerts">
-                                <li>
-                                    <a href="mailbox.html">
-                                        <div>
-                                            <i class="fa fa-envelope fa-fw"></i> You have 16 messages
-                                            <span class="pull-right text-muted small">4 minutes ago</span>
-                                        </div>
-                                    </a>
-                                </li>
-                                <li class="divider"></li>
-                                <li>
-                                    <a href="profile.html">
-                                        <div>
-                                            <i class="fa fa-twitter fa-fw"></i> 3 New Followers
-                                            <span class="pull-right text-muted small">12 minutes ago</span>
-                                        </div>
-                                    </a>
-                                </li>
-                                <li class="divider"></li>
-                                <li>
-                                    <a href="grid_options.html">
-                                        <div>
-                                            <i class="fa fa-upload fa-fw"></i> Server Rebooted
-                                            <span class="pull-right text-muted small">4 minutes ago</span>
-                                        </div>
-                                    </a>
-                                </li>
-                                <li class="divider"></li>
-                                <li>
-                                    <div class="text-center link-block">
-                                        <a href="notifications.html">
-                                            <strong>See All Alerts</strong>
-                                            <i class="fa fa-angle-right"></i>
-                                        </a>
-                                    </div>
-                                </li>
-                            </ul>
-                        </li>
+                        <!-- Notifications removed -->
 
                         <li>
                             <a href="{{ route('logout') }}"
@@ -202,15 +320,24 @@
                                 <i class="fa fa-sign-out"></i> Log out
                             </a>
                         </li> --}}
-                        <li>
-                            <a class="right-sidebar-toggle">
-                                <i class="fa fa-tasks"></i>
-                            </a>
-                        </li>
                     </ul>
 
                 </nav>
             </div>
+
+            @if(session('success'))
+                <div class="alert alert-success alert-dismissible animate-fade-in" style="margin: 20px 20px 0 20px; border-radius: 8px; border-left: 4px solid var(--success);">
+                    <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                    <i class="fa fa-check-circle m-r-xs"></i> <strong>Success:</strong> {{ session('success') }}
+                </div>
+            @endif
+            
+            @if(session('error'))
+                <div class="alert alert-danger alert-dismissible animate-fade-in" style="margin: 20px 20px 0 20px; border-radius: 8px; border-left: 4px solid var(--danger);">
+                    <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                    <i class="fa fa-exclamation-circle m-r-xs"></i> <strong>Error:</strong> {{ session('error') }}
+                </div>
+            @endif
 
             @yield('Main-content')
 
@@ -233,7 +360,7 @@
     <!-- Custom and plugin javascript -->
     <script src="{{ asset('admin/js/inspinia.js') }}"></script>
     <script src="{{ asset('admin/js/plugins/pace/pace.min.js') }}"></script>
-    {{-- <script src="{{ asset('admin/js/plugins/slimscroll/jquery.slimscroll.min.js') }}"></script> --}}
+    <script src="{{ asset('admin/js/plugins/slimscroll/jquery.slimscroll.min.js') }}"></script>
 
     <script src="{{ asset('admin/js/plugins/dataTables/datatables.min.js') }}"></script>
 
@@ -265,7 +392,7 @@
     <script src="{{ asset('admin/js/plugins/metisMenu/jquery.metisMenu.js') }}"></script>
 
     <!-- Color picker -->
-    <script src="{{ asset('admin/js/plugins/colorpicker/bootstrap-colorpicker.min.js') }}"></script>
+    <script src="{{ asset('admin/js/plugins/colorpicker/bootstrap-colorpicker.min.css') }}"></script>
 
     <!-- Clock picker -->
     <script src="{{ asset('admin/js/plugins/clockpicker/clockpicker.js') }}"></script>

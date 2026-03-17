@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>HAIR WE CUT</title>
-    <link rel="icon" href="{{asset('public/favicon.ico')}}">
+    <link rel="icon" href="{{asset('favicon.ico')}}">
 
     <link href="{{asset('admin/css/bootstrap.min.css')}}" rel="stylesheet">
     <link href="{{asset('admin/font-awesome/css/font-awesome.css')}}" rel="stylesheet">

@@ -86,4 +86,12 @@ class Barber extends Authenticatable implements JWTSubject
     {
         return $this->hasMany('App\Models\Service','user_id','barber_of');
     }
+
+    /**
+     * Get the salon that this barber belongs to.
+     */
+    public function salonOwner()
+    {
+        return $this->belongsTo(Barber::class, 'barber_of', 'id');
+    }
 }

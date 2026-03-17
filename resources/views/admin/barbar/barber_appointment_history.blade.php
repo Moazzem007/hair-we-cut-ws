@@ -68,7 +68,8 @@
                                     <th>Action</th>
                                 </thead>
                                 <tbody>
-                                    @foreach ($barber->appoitment as $key => $app)
+                                    @if($barber && $barber->appoitment)
+                                        @foreach ($barber->appoitment as $key => $app)
                                         <tr>
                                             <td>{{ $key + 1 }}</td>
                                             <td>
@@ -79,10 +80,10 @@
                                             </td>
                                             <td>{{ $app->address }}</td>
                                             <td>{{ $app->appType }}</td>
-                                            <td>{{ $app->service->title }}</td>
+                                            <td>{{ $app->service?->title ?: 'N/A' }}</td>
                                             <td>{{ $app->service_type }}</td>
                                             <td>{{ $app->date }}</td>
-                                            <td>{{ $app->slot->from_time }} To {{ $app->slot->to_time }}</td>
+                                            <td>{{ $app->slot ? ($app->slot->from_time . ' To ' . $app->slot->to_time) : 'N/A' }}</td>
                                             <td>{{ $app->status }}</td>
                                             <td>
                                                 @if ($app->status == 'Canceled')
@@ -111,7 +112,12 @@
                                                 </div>
                                             </td>
                                         </tr>
-                                    @endforeach
+                                        @endforeach
+                                    @else
+                                        <tr>
+                                            <td colspan="12" class="text-center">No appointments found or invalid partner reference.</td>
+                                        </tr>
+                                    @endif
                                 </tbody>
                             </table>
 

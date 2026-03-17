@@ -18,22 +18,26 @@ class FcmController extends Controller
 {
     $credentials = env('FIREBASE_CREDENTIALS');
 
+    /*
     if (empty($credentials) || !file_exists($credentials)) {
         throw new \RuntimeException("Firebase credentials file not found: {$credentials}");
     }
+    */
 
     // Disable SSL verification for local development (unsafe)
     putenv('CURL_CA_BUNDLE=');
     putenv('SSL_CERT_FILE=');
 
-    $factory = (new \Kreait\Firebase\Factory)
-        ->withServiceAccount($credentials);
+    if ($credentials && file_exists($credentials)) {
+        $factory = (new \Kreait\Firebase\Factory)
+            ->withServiceAccount($credentials);
 
-    if ($projectId = env('FIREBASE_PROJECT_ID')) {
-        $factory = $factory->withProjectId($projectId);
+        if ($projectId = env('FIREBASE_PROJECT_ID')) {
+            $factory = $factory->withProjectId($projectId);
+        }
+
+        $this->messaging = $factory->createMessaging();
     }
-
-    $this->messaging = $factory->createMessaging();
 }
 
 

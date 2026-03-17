@@ -1,162 +1,101 @@
 @extends('layouts.adminapp')
 
-
-
-
 @section('Main-content')
-    {{-- Page Header --}}
     <div class="row wrapper border-bottom white-bg page-heading">
         <div class="col-lg-10">
-            <h2>Appointment List</h2>
+            <h2>Appointments Management</h2>
             <ol class="breadcrumb">
-                <li>
-                    <a href="{{ route('adminDashboard') }}">Home</a>
-                </li>
-                <li>
-                    <a>Appointment</a>
-                </li>
-                <li class="active">
-                    <strong>Appointment List</strong>
-                </li>
+                <li><a href="{{ route('adminDashboard') }}">Home</a></li>
+                <li class="active"><strong>Appointments</strong></li>
             </ol>
         </div>
-        <div class="col-lg-2">
-
-        </div>
     </div>
-
-    {{-- Page Header  End --}}
-
-
-    {{-- Main Body --}}
 
     <div class="wrapper wrapper-content animated fadeInRight">
         <div class="row">
             <div class="col-lg-12">
                 <div class="ibox float-e-margins">
-                    <div class="ibox-title">
-                        {{-- <h5>Basic Data Tables example with responsive plugin</h5> --}}
-                        {{-- <a data-toggle="modal" class="btn btn-primary" href="#modal-form">Add barbar</a> --}}
-                        <div class="ibox-tools">
-                            <a class="collapse-link">
-                                <i class="fa fa-chevron-up"></i>
-                            </a>
-                            <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                                <i class="fa fa-wrench"></i>
-                            </a>
-                            <ul class="dropdown-menu dropdown-user">
-                                <li><a href="#">Config option 1</a>
-                                </li>
-                                <li><a href="#">Config option 2</a>
-                                </li>
-                            </ul>
-                            <a class="close-link">
-                                <i class="fa fa-times"></i>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="ibox-content">
+                    <div class="ibox-content" style="border-radius: 12px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
                         <div class="table-responsive">
-                            <table
-                                class="table table-striped table-bordered table-hover dataTables-example toggle-arrow-tiny footable">
+                            <table class="table table-hover dataTables-example">
                                 <thead>
                                     <tr>
-                                        <th>#</th>
-                                        <th>Barber </th>
+                                        <th>ID</th>
+                                        <th>Barber / Salon</th>
                                         <th>Customer</th>
-                                        <th>Slot #</th>
-                                        <th>Time</th>
-                                        <th>Date</th>
+                                        <th>Schedule</th>
                                         <th>Status</th>
-                                        <th>Reason</th>
-                                        <th data-toggle="true">Services</th>
-                                        <th data-hide="all">Servies Details</th>
-                                        <th data-hide="all">Service Type</th>
-                                        <th data-hide="all">Logs</th>
+                                        <th>Service Details</th>
+                                        <th class="text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach ($appointments as $key => $appointment)
                                         <tr>
-                                            <td>{{ $key + 1 }}</td>
-                                          <td>
-    {{ $appointment->barber ? $appointment->barber->name : 'No barber assigned' }}
-</td>
-
-                                            <td>{{ $appointment->customer->name }}</td>
+                                            <td>#{{ $appointment->id }}</td>
                                             <td>
-                                                {{ $appointment->slot ? $appointment->slot->slot_no : '' }}
+                                                <strong>{{ $appointment->barber ? $appointment->barber->name : 'N/A' }}</strong><br>
+                                                <small class="text-muted">{{ $appointment->barber ? $appointment->barber->salon : '' }}</small>
                                             </td>
                                             <td>
-                                                {{ $appointment->slot ? $appointment->slot->from_time : '' }} /
-                                                {{ $appointment->slot ? $appointment->slot->to_time : '' }}
-                                            </td>
-                                            <td>{{ $appointment->date }}</td>
-                                            <td>
-
-                                                {{ $appointment->status }}
-
-                                                @if ($appointment->status == 'Canceled' && !$appointment->refund)
-                                                    <a class="btn btn-info btn-xs"
-                                                        href="{{ route('refundPayment', $appointment->id) }}">Refund</a>
-                                                @endif
-
+                                                <strong>{{ $appointment->customer->name }}</strong><br>
+                                                <small class="text-muted">{{ $appointment->customer->contact }}</small>
                                             </td>
                                             <td>
-                                                @if ($appointment->status == 'Canceled')
-                                                    @if ($appointment->reason != null)
-                                                        {{ $appointment->reason->reason }}
-                                                    @endif
-                                                @endif
-
-                                                @if ($appointment->status == 'Review')
-                                                    @for ($i = 0; $i < $appointment->rating->rating; $i++)
-                                                        <i class="fa fa-star" style="color:gold;"></i>
-                                                    @endfor
-                                                @endif
+                                                <span class="label label-white"><i class="fa fa-calendar"></i> {{ $appointment->date }}</span><br>
+                                                <small class="text-navy"><i class="fa fa-clock-o"></i> {{ $appointment->slot ? $appointment->slot->from_time : '' }}</small>
                                             </td>
-                                            <td>Details</td>
-                                            <td>{{ @$appointment->service->title }}</td>
-                                            <td>{{ $appointment->appType }}</td>
                                             <td>
-                                                <table class="table">
-                                                    <tbody>
-                                                        <tr>
-                                                            <th>Status</th>
-                                                            <th>Payment</th>
-                                                            <th>Date</th>
-                                                        </tr>
-                                                        @if ($appointment->log->isNotEmpty())
-                                                            @foreach ($appointment->log as $log)
-                                                                <tr>
-                                                                    <td>{{ $log->status }}</td>
-                                                                    <td>{{ $log->payment }}</td>
-                                                                    <td>{{ $log->created_at->format('Y-m-d') }}</td>
-                                                                </tr>
-                                                            @endforeach
+                                                @php
+                                                    $statusClass = 'label-default';
+                                                    if($appointment->status == 'Completed') $statusClass = 'label-primary';
+                                                    if($appointment->status == 'Canceled') $statusClass = 'label-danger';
+                                                    if($appointment->status == 'Confirmed') $statusClass = 'label-info';
+                                                @endphp
+                                                <span class="label {{ $statusClass }}">{{ $appointment->status }}</span>
+                                            </td>
+                                            <td>
+                                                <div class="well well-sm">
+                                                    <strong>Service:</strong> {{ @$appointment->service->title }}<br>
+                                                    <strong>Type:</strong> {{ $appointment->appType }}<br>
+                                                    <strong>Reason:</strong> {{ $appointment->reason ? $appointment->reason->reason : 'None' }}
+                                                </div>
+                                            </td>
+                                            <td class="text-right">
+                                                <div class="btn-group">
+                                                    <button class="btn btn-xs btn-white dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        <i class="fa fa-cog m-r-xs"></i> <i class="fa fa-angle-down"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu dropdown-menu-right">
+                                                        <li><a href="{{ route('appointment.show', $appointment->id) }}" style="padding: 8px 15px;"><i class="fa fa-eye m-r-xs"></i> View Details</a></li>
+                                                        
+                                                        <li class="divider"></li>
+                                                        <li class="dropdown-header">Contact Customer</li>
+                                                        <li><a href="tel:{{ $appointment->customer->contact }}" style="padding: 8px 15px;"><i class="fa fa-phone m-r-xs text-primary"></i> Call Customer</a></li>
+                                                        <li><a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $appointment->customer->contact) }}" target="_blank" style="padding: 8px 15px;"><i class="fa fa-whatsapp m-r-xs text-success"></i> WhatsApp</a></li>
+                                                        
+                                                        <li class="divider"></li>
+                                                        <li class="dropdown-header">Manage Status</li>
+                                                        @if ($appointment->status == 'Canceled' && !$appointment->refund)
+                                                            <li><a href="{{ route('refundPayment', $appointment->id) }}" onclick="return confirm('Process refund for this appointment?')" style="padding: 8px 15px; color: #f59e0b;"><i class="fa fa-money m-r-xs"></i> Process Refund</a></li>
                                                         @endif
-                                                    </tbody>
-                                                </table>
+                                                        
+                                                        @if ($appointment->status != 'Completed' && $appointment->status != 'Canceled')
+                                                            <li><a href="{{ route('completedStatus', $appointment->id) }}" onclick="return confirm('Mark as completed?')" style="padding: 8px 15px; color: #10b981;"><i class="fa fa-check m-r-xs"></i> Mark Completed</a></li>
+                                                        @endif
+                                                        
+                                                        <li><a href="{{ route('appointmentDelete', $appointment->id) }}" class="text-danger" style="padding: 8px 15px;" onclick="return confirm('Attention: This will permanently delete this appointment record. Continue?')"><i class="fa fa-trash m-r-xs"></i> Delete Record</a></li>
+                                                    </ul>
+                                                </div>
                                             </td>
-
                                         </tr>
                                     @endforeach
                                 </tbody>
                             </table>
-
                         </div>
-
                     </div>
                 </div>
             </div>
         </div>
-
-
     </div>
-
-
-
-
-
-    {{-- Main Body End --}}
 @endsection

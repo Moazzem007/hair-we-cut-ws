@@ -457,7 +457,7 @@ class OrderController extends Controller
 
     public function adminproductorder()
     {
-        $orders = Order::where('type','=','address')->with('customer')->orderBy('created_at','desc')->get();
+        $orders = Order::with('customer')->orderBy('created_at','desc')->get();
         return view('admin.barbar.orders.productorder_admin',compact('orders'));
     }
 

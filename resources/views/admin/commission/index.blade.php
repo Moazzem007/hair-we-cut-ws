@@ -1,141 +1,95 @@
 @extends('layouts.adminapp')
 
-
-
-
 @section('Main-content')
-    {{-- Page Header --}}
     <div class="row wrapper border-bottom white-bg page-heading">
         <div class="col-lg-10">
-            <h2>Commission List</h2>
+            <h2>Commission & Reconciliation</h2>
             <ol class="breadcrumb">
-                <li>
-                    <a href="{{ route('adminDashboard') }}">Home</a>
-                </li>
-                <li>
-                    <a>Commission</a>
-                </li>
-                <li class="active">
-                    <strong>Commission List</strong>
-                </li>
+                <li><a href="{{ route('adminDashboard') }}">Home</a></li>
+                <li class="active"><strong>Commission</strong></li>
             </ol>
-        </div>
-        <div class="col-lg-2">
-
         </div>
     </div>
 
-    {{-- Page Header  End --}}
-
-
-    {{-- Main Body --}}
-
     <div class="wrapper wrapper-content animated fadeInRight">
         <div class="row">
-            <div class="col-lg-12">
+            <div class="col-lg-4">
+                <div class="widget-stat stat-revenue">
+                    <span class="stat-label">Total Commission Collected</span>
+                    <h2 class="no-margins"><i class="fa fa-gbp"></i> {{ number_format(App\Models\Wallet::sum('com_amount'), 2) }}</h2>
+                    <small>Overview of all time platform earnings</small>
+                </div>
+            </div>
+            <div class="col-lg-8">
                 <div class="ibox float-e-margins">
                     <div class="ibox-title">
-                        <a data-toggle="modal" class="btn btn-primary" href="#modal-form">New Percent</a>
+                        <h5>Platform Commission Settings</h5>
                         <div class="ibox-tools">
-                            <a class="collapse-link">
-                                <i class="fa fa-chevron-up"></i>
-                            </a>
-                            <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                                <i class="fa fa-wrench"></i>
-                            </a>
-                            <ul class="dropdown-menu dropdown-user">
-                                <li><a href="#">Config option 1</a>
-                                </li>
-                                <li><a href="#">Config option 2</a>
-                                </li>
-                            </ul>
-                            <a class="close-link">
-                                <i class="fa fa-times"></i>
-                            </a>
+                            <a data-toggle="modal" class="btn btn-primary btn-xs" href="#modal-form">Update Percentages</a>
                         </div>
                     </div>
                     <div class="ibox-content">
-
                         <div class="table-responsive">
-                            <table class="table table-striped table-bordered table-hover dataTables-example">
+                            <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th>#</th>
-                                        <th>Percent</th>
-                                        <th>Product</th>
-                                        <th>Action</th>
+                                        <th>Date Set</th>
+                                        <th>Service Comm (%)</th>
+                                        <th>Product Comm (%)</th>
+                                        <th>Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach ($coms as $key => $com)
-                                        <tr>
-                                            <td>{{ $key + 1 }}</td>
-                                            <td>{{ $com->percent }}</td>
-                                            <td>{{ $com->product }}</td>
+                                        <tr @if($loop->first) style="font-weight: bold; background: #fafafa;" @endif>
+                                            <td>{{ $com->created_at->format('M d, Y') }}</td>
+                                            <td>{{ $com->percent }}%</td>
+                                            <td>{{ $com->product }}%</td>
                                             <td>
-                                                {{ $com->created_at->format('d-m-Y') }}
+                                                @if($loop->first)
+                                                    <span class="label label-primary">Current Active</span>
+                                                @else
+                                                    <span class="label label-default">History</span>
+                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
                             </table>
                         </div>
-
                     </div>
                 </div>
             </div>
         </div>
-
-
-
-        {{-- Modal Form --}}
-        <div id="modal-form" class="modal fade" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content modal-sm">
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-sm-12">
-                                <h3 class="m-t-none m-b">Add Commission</h3>
-                                <form action="{{ route('commission.store') }}" method="post">
-                                    {{ csrf_field() }}
-                                    <div class="row">
-
-                                        <div class="col-sm-12">
-                                            <div class="form-group">
-                                                <label>Percent(%)</label>
-                                                <input type="number" required placeholder="20" name="percent"
-                                                    class="form-control">
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-12">
-                                            <div class="form-group">
-                                                <label>Barber Product Commission(%)</label>
-                                                <input type="number" required placeholder="10" name="product"
-                                                    class="form-control">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <button class="btn btn-sm btn-primary btn-block"
-                                            type="submit"><strong>Save</strong></button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Modal Form --}}
-
-
     </div>
 
-
-
-
-
-    {{-- Main Body End --}}
+    <!-- Modal remains largely same but styled -->
+    <div id="modal-form" class="modal fade" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">New Commission Rates</h4>
+                </div>
+                <form action="{{ route('commission.store') }}" method="post">
+                    {{ csrf_field() }}
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Service Booking Commission (%)</label>
+                            <input type="number" required name="percent" class="form-control" placeholder="e.g. 20">
+                            <small class="text-muted">Standard rate for salon appointments.</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Barber Product Commission (%)</label>
+                            <input type="number" required name="product" class="form-control" placeholder="e.g. 10">
+                            <small class="text-muted">Rate for products sold via the app.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-white" data-dismiss="modal">Cancel</button>
+                        <button class="btn btn-primary" type="submit">Apply New Rates</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection

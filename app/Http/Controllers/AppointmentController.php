@@ -59,12 +59,20 @@ class AppointmentController extends Controller
 
     public function completedstatus($id)
     {
-        $row = Appointment::find($id);
+        try {
+            $appointment = Appointment::findOrFail($id);
+            $appointment->status = 'Completed';
+            $appointment->save();
 
-        $row->status = 'Completed';
-        $result = $row->update();
-        if ($result) {
-            return redirect()->route('barberAppointment');
+            // Log the status change
+            \App\Models\AppointmentLog::create([
+                'appointment_id' => $appointment->id,
+                'status'         => 'Completed',
+            ]);
+
+            return redirect()->back()->with('success', 'Appointment marked as completed.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error updating appointment status.');
         }
     }
 
@@ -263,18 +271,22 @@ class AppointmentController extends Controller
      */
     public function show($id)
     {
-        //
-
         try {
-            $app         = Appointment::find($id);
+            $appointment = Appointment::with('customer', 'service', 'slot', 'barber', 'rating', 'log')->findOrFail($id);
 
-            return response()->json($app);
+            if (request()->expectsJson() || request()->ajax()) {
+                return response()->json($appointment);
+            }
+
+            return view('admin.appointment.show', compact('appointment'));
         } catch (\Exception $e) {
-
-            return response()->json([
-                'success' => false,
-                'Error' => $e->getMessage()
-            ]);
+            if (request()->expectsJson() || request()->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'Error' => $e->getMessage()
+                ], 404);
+            }
+            return redirect()->back()->with('error', 'Appointment not found.');
         }
     }
 
@@ -463,34 +475,35 @@ class AppointmentController extends Controller
      * @param  \App\Models\Appointment  $appointment
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Appointment $appointment)
+    public function destroy($id)
     {
          try {
-            // Check if appointment exists
+            $appointment = Appointment::find($id);
+            
             if (!$appointment) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Appointment not found.'
-                ], 404);
+                if (request()->expectsJson() || request()->ajax()) {
+                    return response()->json(['status' => 'error', 'message' => 'Appointment not found.'], 404);
+                }
+                return redirect()->back()->with('error', 'Appointment not found.');
             }
 
-            // Delete related records first to maintain referential integrity
-            
+            // Delete associated logs first
+            $appointment->log()->delete();
 
             // Delete the appointment
             $appointment->delete();
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Appointment deleted successfully.'
-            ], 200);
+            if (request()->expectsJson() || request()->ajax()) {
+                return response()->json(['status' => 'success', 'message' => 'Appointment deleted successfully.'], 200);
+            }
+            return redirect()->route('appointment.index')->with('success', 'Appointment deleted successfully.');
 
         } catch (\Exception $e) {
             Log::error('Error deleting appointment: ' . $e->getMessage());
-            return response()->json([
-                'status' => 'error',
-                'message' => 'An error occurred while deleting the appointment.'
-            ], 500);
+            if (request()->expectsJson() || request()->ajax()) {
+                return response()->json(['status' => 'error', 'message' => 'An error occurred while deleting the appointment.'], 500);
+            }
+            return redirect()->back()->with('error', 'Error deleting appointment: ' . $e->getMessage());
         }
     }
 

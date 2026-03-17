@@ -18,7 +18,7 @@ use App\Http\Controllers\ProductDashController;
 use App\Http\Controllers\BarberProductController;
 use App\Http\Controllers\BarberDashboardController;
 use App\Http\Controllers\CartController;
-use App\Http\Controllers\SubscriptionController;
+// use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\ProfileController;
@@ -131,7 +131,7 @@ Route::group(['middleware' => ['auth']], function () {
 
         Route::resource('appointment', AppointmentController::class);
         Route::get('barberAppointment', [AppointmentController::class,'barberAppointment'])->name('barberAppointment');
-        // Route::get('appointmentDelete', [AppointmentController::class,'destroy'])->name('appointmentDelete');
+        Route::get('appointmentDelete/{id}', [AppointmentController::class,'destroy'])->name('appointmentDelete');
 
 
 
@@ -200,8 +200,8 @@ Route::group(['middleware' => ['auth']], function () {
 
 
 
-     Route::get('subscription/create', [SubscriptionController::class,'index'])->name('subscription.create');
-     Route::post('order-post', [SubscriptionController::class,'orderPost'])->name('order-post');
+//     Route::get('subscription/create', [SubscriptionController::class,'index'])->name('subscription.create');
+//     Route::post('order-post', [SubscriptionController::class,'orderPost'])->name('order-post');
 
 
     // Wallet Controller
@@ -295,7 +295,6 @@ Route::get('marketallproducts', [marketplace::class,'marketallproduct'])->name('
     // BARBER PRODUCT ORDER
     Route::resource('orders', OrderController::class);
 
-
     // BARBER PRODUCT ORDER
     Route::resource('codes', CodeController::class);
     Route::get('confirm/{id}/{order}', [CodeController::class,'show'])->name('confirm');
@@ -305,6 +304,12 @@ Route::get('marketallproducts', [marketplace::class,'marketallproduct'])->name('
     Route::get('orderInvoice/{id}',[OrderController::class,'orderInvoice'])->name('orderInvoice');
     Route::get('orderInvoiceViewToBarber/{id}',[OrderController::class,'orderInvoiceViewToBarber'])->name('orderInvoiceViewToBarber');
     Route::get('barberproductorder',[OrderController::class,'barberproductorder'])->name('barberproductorder');
+
+    // App Content Management
+    Route::resource('appcontent', App\Http\Controllers\AppContentController::class);
+    Route::resource('adminnotifications', App\Http\Controllers\NotificationController::class);
+    Route::post('send-notification', [App\Http\Controllers\NotificationController::class, 'send'])->name('send.notification');
+
 
 });
 

@@ -20,6 +20,7 @@ use App\Models\Service;
 use App\Models\Wallet;
 use App\Models\Commission;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
 use App\Mail\BarberSignUp;
 use Carbon\Carbon;
 use App\Models\ProductWallet;
@@ -31,27 +32,23 @@ class BarberController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
         // For Admin Side
-
         try {
+            $status = $request->get('status', 'Active');
+            
+            $query = Barber::query();
+            
+            if ($status) {
+                $query->where('status', $status);
+            }
 
-            $barbers = Barber::where('is_business', 1)->with(['rating' => function ($q) {
-                $q->selectRaw('count(id) as reviews, barber_id')->groupBy('barber_id');
-                $q->selectRaw('avg(rating) as rate, barber_id')->groupBy('barber_id');
-            }])
-                ->with(['wallet' => function ($q) {
-                    $q->whereMonth('created_at', Carbon::now()->month)->selectRaw('SUM(debit) as total, barber_id')->groupBy('barber_id');
-                }])
-                ->with(['appoitment' => function ($q) {
-                    $q->whereMonth('created_at', Carbon::now()->month)->selectRaw('COUNT(id) as appointments, barber_id')->groupBy('barber_id');
-                }])
+            $barbers = $query->with('rating', 'wallet', 'appoitment', 'salonOwner')
                 ->orderBy('created_at', 'desc')
                 ->get();
-            // 
-            // return $barbers;
-            return view('admin.barbar.index', compact('barbers'));
+
+            return view('admin.barbar.index', compact('barbers', 'status'));
         } catch (\Exception $e) {
             return $e->getMessage();
         }
@@ -507,23 +504,68 @@ class BarberController extends Controller
         //
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\barber  $barber
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(barber $barber)
+    public function destroy($id)
     {
-        //
+        try {
+            DB::beginTransaction();
+            $barber = Barber::findOrFail($id);
+            
+            // Delete related records manually to respect foreign key constraints
+            \App\Models\AppointmentLog::whereHas('appointment', function($q) use ($id) {
+                $q->where('barber_id', $id);
+            })->delete();
+            \App\Models\Cancle::where('barber_id', $id)->delete();
+            \App\Models\Appointment::where('barber_id', $id)->delete();
+            \App\Models\Wallet::where('barber_id', $id)->delete();
+            \App\Models\Rating::where('barber_id', $id)->delete();
+            \App\Models\BarberTimeSlot::where('slot_no', $id)->delete();
+            \App\Models\ProductWallet::where('barber_id', $id)->delete();
+            \App\Models\BarberDoc::where('barber_id', $id)->delete();
+
+            // Optionally delete the associated user
+            if ($barber->user_id) {
+                User::where('id', $barber->user_id)->delete();
+            }
+            $barber->delete();
+            
+            DB::commit();
+
+            return redirect()->route('barbers.index')->with('success', 'Partner deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Error deleting partner: ' . $e->getMessage());
+        }
     }
 
+    public function disabledstatus($id)
+    {
+        try {
+            $barber = Barber::findOrFail($id);
+            $barber->status = 'Disabled';
+            $barber->save();
 
+            return redirect()->route('barbers.index')->with('success', 'Partner account disabled.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error updating status.');
+        }
+    }
+
+    public function activestatus($id)
+    {
+        try {
+            $barber = Barber::findOrFail($id);
+            $barber->status = 'Active';
+            $barber->save();
+
+            return redirect()->route('barbers.index')->with('success', 'Partner account activated.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error updating status.');
+        }
+    }
 
     public function barberactivestatus($id)
     {
         $row = Barber::find($id);
-
         $row->status = 'Active';
         $result = $row->update();
         if ($result) {

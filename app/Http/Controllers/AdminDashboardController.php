@@ -29,13 +29,37 @@ class AdminDashboardController extends Controller
         if (Auth::user()->type == 'Admin') {
 
             //  Admin dashboard
-            $barbers     = Barber::where('status','=','Active')->count();
-            $customers   = Customer::count();
-            $appoitments = Appointment::count();
-            $contactus   = Contactus::orderBy('id','desc')->limit(3)->get();
-            $wallet      = Wallet::where('pay_status','!=','REFUND')->sum('debit');
-            $comission   = Wallet::where('pay_status','!=','REFUND')->sum('com_amount');
-            return view('admin.dashboard',get_defined_vars());
+            $barbers_count     = Barber::where('status','=','Active')->count();
+            $pending_barbers   = Barber::where('status','=','Pending')->orWhere('status','=','Pendding')->count();
+            $customers_count   = Customer::count();
+            $appoitments_count = Appointment::count();
+            $contactus         = Contactus::orderBy('id','desc')->limit(3)->get();
+            
+            // Revenue Analysis
+            $total_revenue     = Wallet::where('pay_status','!=','REFUND')->sum('debit');
+            $total_commission  = Wallet::where('pay_status','!=','REFUND')->sum('com_amount');
+            
+            // Monthly Revenue for Chart
+            $monthly_revenue = Wallet::where('pay_status','!=','REFUND')
+                ->whereYear('created_at', Carbon::now()->year)
+                ->selectRaw('month(created_at) as month, sum(debit) as total')
+                ->groupBy('month')
+                ->get()
+                ->pluck('total', 'month')
+                ->toArray();
+                
+            // Appointment Status Breakdown for Chart
+            $appointment_stats = Appointment::selectRaw('status, count(*) as count')
+                ->groupBy('status')
+                ->get()
+                ->pluck('count', 'status')
+                ->toArray();
+                
+            // Stats for growth (last 30 days vs previous 30 days)
+            $new_users_30d = Customer::where('created_at', '>=', Carbon::now()->subDays(30))->count();
+            $new_barbers_30d = Barber::where('created_at', '>=', Carbon::now()->subDays(30))->count();
+                
+            return view('admin.dashboard', get_defined_vars());
 
         }else{
 

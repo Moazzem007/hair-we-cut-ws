@@ -17,6 +17,6 @@ class DatabaseSeeder extends Seeder
         $this->call(AuthSeeder::class);
         $this->call(CommissionSeeder::class);
         // \App\Models\User::factory(10)->create();
-        // $this->call(barberSeeder::class);
+        $this->call(barberSeeder::class);
     }
 }

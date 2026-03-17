@@ -166,7 +166,7 @@ class ProfileController extends Controller
             if ($result) {
                 return redirect()->route('profile')->with('message','Slot Deleted');
             }
-        } catch (\Excetion $e) {
+        } catch (\Exception $e) {
             return $e->getMessage();
         }
     }
@@ -290,6 +290,9 @@ class ProfileController extends Controller
     public function barberappointmenthistory($id)
     {
         $barber = Barber::where('user_id',$id)->with('appoitment')->first();
+        if (!$barber) {
+            $barber = Barber::find($id);
+        }
         return view('admin.barbar.barber_appointment_history',get_defined_vars());
     }
 
@@ -298,6 +301,9 @@ class ProfileController extends Controller
     public function barberwallethistory($id)
     {
         $barber = Barber::where('user_id',$id)->with('wallet')->first();
+        if (!$barber) {
+            $barber = Barber::find($id);
+        }
         return view('admin.barbar.barber_wallet_history',get_defined_vars());
     }
 
@@ -339,7 +345,7 @@ class ProfileController extends Controller
             }
            
             
-        } catch (\Excetion $e) {
+        } catch (\Exception $e) {
             return $e->getMessage();
         }
     }
