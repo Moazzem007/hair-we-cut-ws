@@ -3,24 +3,13 @@
         Options -MultiViews
     </IfModule>
 
-	RewriteEngine On
+    RewriteEngine On
 
-	RewriteCond %{HTTP:Authorization} ^(.+)$
-	RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} ^(.+)$
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-	# Bypass server.php for assets already routed to public/ to prevent LiteSpeed MIME errors
-	RewriteCond %{REQUEST_URI} public/
-	RewriteRule ^ - [L]
-
-	RewriteCond %{REQUEST_FILENAME} -d [OR]
-	RewriteCond %{REQUEST_FILENAME} -f
-	RewriteRule ^ ^$1 [N]
-
-	# Route static assets to public/ and stop immediately
-	RewriteCond %{REQUEST_URI} (\.\w+$) [NC]
-	RewriteRule ^(.*)$ public/$1 [L]
-
-	RewriteCond %{REQUEST_FILENAME} !-d
-	RewriteCond %{REQUEST_FILENAME} !-f
-	RewriteRule ^ server.php
+    # Force ALL traffic, including static assets, through server.php
+    # This bypasses LiteSpeed's native corrupted MIME handlers for CSS files
+    RewriteRule ^(.*)$ server.php [L]
 </IfModule>
