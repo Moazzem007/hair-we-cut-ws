@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('customers', function (Blueprint $table) {
-            $table->string('billing_address')->nullable();
-        });
+        if (!Schema::hasColumn('customers', 'billing_address')) {
+            Schema::table('customers', function (Blueprint $table) {
+                $table->string('billing_address')->nullable();
+            });
+        }
     }
 
     /**
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('customers', function (Blueprint $table) {
-            $table->dropColumn('billing_address');
-        });
+        if (Schema::hasColumn('customers', 'billing_address')) {
+            Schema::table('customers', function (Blueprint $table) {
+                $table->dropColumn('billing_address');
+            });
+        }
     }
 };

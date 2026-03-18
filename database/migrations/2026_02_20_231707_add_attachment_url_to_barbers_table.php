@@ -13,9 +13,11 @@ class AddAttachmentUrlToBarbersTable extends Migration
      */
     public function up()
     {
-        Schema::table('barbers', function (Blueprint $table) {
-            $table->string('attachment_url')->nullable()->after('img');
-        });
+        if (!Schema::hasColumn('barbers', 'attachment_url')) {
+            Schema::table('barbers', function (Blueprint $table) {
+                $table->string('attachment_url')->nullable()->after('img');
+            });
+        }
     }
 
     /**
@@ -25,8 +27,10 @@ class AddAttachmentUrlToBarbersTable extends Migration
      */
     public function down()
     {
-        Schema::table('barbers', function (Blueprint $table) {
-            $table->dropColumn('attachment_url');
-        });
+        if (Schema::hasColumn('barbers', 'attachment_url')) {
+            Schema::table('barbers', function (Blueprint $table) {
+                $table->dropColumn('attachment_url');
+            });
+        }
     }
 }

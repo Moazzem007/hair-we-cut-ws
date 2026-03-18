@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('appointments', function (Blueprint $table) {
-            $table->string('payment_status')->default('pending')->after('id'); // You can adjust position
-        });
+        if (!Schema::hasColumn('appointments', 'payment_status')) {
+            Schema::table('appointments', function (Blueprint $table) {
+                $table->string('payment_status')->default('pending')->after('id'); // You can adjust position
+            });
+        }
     }
 
     /**
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('appointments', function (Blueprint $table) {
-            $table->dropColumn('payment_status');
-        });
+        if (Schema::hasColumn('appointments', 'payment_status')) {
+            Schema::table('appointments', function (Blueprint $table) {
+                $table->dropColumn('payment_status');
+            });
+        }
     }
 };
