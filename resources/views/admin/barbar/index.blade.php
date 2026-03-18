@@ -77,7 +77,7 @@
                                                 <div style="display: flex; gap: 15px;">
                                                     <div>
                                                         <small class="text-muted" style="display: block; font-size: 10px; text-transform: uppercase;">Rating</small>
-                                                        <strong style="color: #f59e0b;"><i class="fa fa-star"></i> {{ $barbar->rating->isNotEmpty() ? number_format($barbar->rating[0]->rate, 1) : 'N/A' }}</strong>
+                                                        <strong style="color: #f59e0b;"><i class="fa fa-star"></i> {{ $barbar->rating->isNotEmpty() ? number_format((float) $barbar->rating[0]->rate, 1) : 'N/A' }}</strong>
                                                     </div>
                                                     <div style="border-left: 1px solid #eee; padding-left: 15px;">
                                                         <small class="text-muted" style="display: block; font-size: 10px; text-transform: uppercase;">Orders</small>
