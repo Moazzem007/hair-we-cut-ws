@@ -13,9 +13,11 @@ class AddCityToCustomersTable extends Migration
      */
     public function up()
     {
-        Schema::table('customers', function (Blueprint $table) {
-            $table->string('city')->nullable(); 
-        });
+        if (!Schema::hasColumn('customers', 'city')) {
+            Schema::table('customers', function (Blueprint $table) {
+                $table->string('city')->nullable(); 
+            });
+        }
     }
 
     /**
@@ -25,8 +27,10 @@ class AddCityToCustomersTable extends Migration
      */
     public function down()
     {
-        Schema::table('customers', function (Blueprint $table) {
-            $table->dropColumn('city');
-        });
+        if (Schema::hasColumn('customers', 'city')) {
+            Schema::table('customers', function (Blueprint $table) {
+                $table->dropColumn('city');
+            });
+        }
     }
 }
