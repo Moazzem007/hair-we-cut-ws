@@ -25,5 +25,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
         Schema::defaultStringLength(191);
+
+        // Force HTTPS in production to prevent mixed content blocking on cPanel/proxies
+        if (env('APP_ENV') !== 'local') {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
     }
 }
