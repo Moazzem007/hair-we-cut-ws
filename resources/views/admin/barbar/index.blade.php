@@ -43,6 +43,7 @@
                                 </thead>
                                 <tbody>
                                     @foreach ($barbers as $barbar)
+                                        @php try { @endphp
                                         <tr>
                                             <td>
                                                 <div style="display: flex; align-items: center;">
@@ -77,11 +78,11 @@
                                                 <div style="display: flex; gap: 15px;">
                                                     <div>
                                                         <small class="text-muted" style="display: block; font-size: 10px; text-transform: uppercase;">Rating</small>
-                                                        <strong style="color: #f59e0b;"><i class="fa fa-star"></i> {{ $barbar->rating->isNotEmpty() ? number_format((float) $barbar->rating[0]->rate, 1) : 'N/A' }}</strong>
+                                                        <strong style="color: #f59e0b;"><i class="fa fa-star"></i> {{ $barbar->rating->isNotEmpty() ? number_format((float) $barbar->rating->first()->rate, 1) : 'N/A' }}</strong>
                                                     </div>
                                                     <div style="border-left: 1px solid #eee; padding-left: 15px;">
                                                         <small class="text-muted" style="display: block; font-size: 10px; text-transform: uppercase;">Orders</small>
-                                                        <strong style="color: var(--secondary);">{{ $barbar->appoitment->isNotEmpty() ? $barbar->appoitment[0]->appointments : 0 }}</strong>
+                                                        <strong style="color: var(--secondary);">{{ $barbar->appoitment->isNotEmpty() ? $barbar->appoitment->first()->appointments : 0 }}</strong>
                                                     </div>
                                                 </div>
                                             </td>
@@ -121,6 +122,7 @@
                                                 </div>
                                             </td>
                                         </tr>
+                                        @php } catch (\Throwable $e) { echo '<tr><td colspan="7" style="color:#b91c1c; background:#fee2e2; padding:15px; font-family:monospace;"><strong>CRASH Barber ID '.$barbar->id.':</strong> '.$e->getMessage().' in '.basename($e->getFile()).':'.$e->getLine().'</td></tr>'; } @endphp
                                     @endforeach
                                 </tbody>
                             </table>
