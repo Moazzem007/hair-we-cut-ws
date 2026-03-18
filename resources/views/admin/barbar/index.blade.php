@@ -48,7 +48,7 @@
                                                 <div style="display: flex; align-items: center;">
                                                     <div style="margin-right: 12px;">
                                                         <span class="img-circle bg-primary" style="width: 38px; height: 38px; color: white; font-weight: bold; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);">
-                                                            {{ substr($barbar->name, 0, 1) }}
+                                                            {{ $barbar->name ? substr($barbar->name, 0, 1) : 'U' }}
                                                         </span>
                                                     </div>
                                                     <div>
