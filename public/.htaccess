@@ -3,6 +3,13 @@
         Options -MultiViews -Indexes
     </IfModule>
 
+    # Force correct MIME types and prevent PHP parsing for static assets
+    <IfModule mod_mime.c>
+        RemoveHandler .css .js
+        AddType text/css .css
+        AddType application/javascript .js
+    </IfModule>
+
     RewriteEngine On
 
     # Handle Authorization Header
