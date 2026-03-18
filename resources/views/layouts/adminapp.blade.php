@@ -9,8 +9,8 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" href="{{ asset('favicon.ico') }}">
-    <link href="{{ asset('admin/css/bootstrap.min.css') }}" rel="stylesheet">
-    <link href="{{ asset('admin/font-awesome/css/font-awesome.css') }}" rel="stylesheet">
+    <link href="{{ asset('admin/css/bootstrap.min.css') }}?v=2.0" rel="stylesheet" type="text/css">
+    <link href="{{ asset('admin/font-awesome/css/font-awesome.css') }}?v=2.0" rel="stylesheet" type="text/css">
 
 <link href="{{ asset('admin/css/plugins/iCheck/custom.css') }}" rel="stylesheet">
 
@@ -49,9 +49,9 @@
 <!-- FooTable -->
 <link href="{{ asset('admin/css/plugins/footable/footable.core.css') }}" rel="stylesheet">
 
-    <link href="{{ asset('admin/css/animate.css') }}" rel="stylesheet">
-    <link href="{{ asset('admin/css/style.css') }}" rel="stylesheet">
-    <link href="{{ asset('admin/css/premium_admin.css') }}" rel="stylesheet">
+    <link href="{{ asset('admin/css/animate.css') }}?v=2.0" rel="stylesheet" type="text/css">
+    <link href="{{ asset('admin/css/style.css') }}?v=2.0" rel="stylesheet" type="text/css">
+    <link href="{{ asset('admin/css/premium_admin.css') }}?v=2.0" rel="stylesheet" type="text/css">
 
 
     <style>
