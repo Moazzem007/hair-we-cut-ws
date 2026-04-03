@@ -17,16 +17,14 @@ class FcmController extends Controller
     public function __construct()
 {
     $credentials = env('FIREBASE_CREDENTIALS');
-
-    /*
-    if (empty($credentials) || !file_exists($credentials)) {
-        throw new \RuntimeException("Firebase credentials file not found: {$credentials}");
+    
+    // Fallback to evaluating relative to base path if the file isn't found exactly as specified
+    if ($credentials && !file_exists($credentials)) {
+        $credentials = base_path($credentials);
     }
-    */
 
     // Disable SSL verification for local development (unsafe)
-    putenv('CURL_CA_BUNDLE=');
-    putenv('SSL_CERT_FILE=');
+    // Removed putenv('CURL_CA_BUNDLE=') and putenv('SSL_CERT_FILE=') because they break live server SSL calls to Firebase.
 
     if ($credentials && file_exists($credentials)) {
         $factory = (new \Kreait\Firebase\Factory)
@@ -55,6 +53,10 @@ class FcmController extends Controller
         }
 
         try {
+            if (!$this->messaging) {
+                throw new \Exception("Firebase messaging instance is null. Check if FIREBASE_CREDENTIALS path in .env is correct and the file exists.");
+            }
+
             $notification = Notification::create($title, $body);
 
             $message = CloudMessage::withTarget('token', $token)
@@ -99,6 +101,10 @@ class FcmController extends Controller
         $body  = $request->input('body', 'Body');
 
         try {
+            if (!$this->messaging) {
+                throw new \Exception("Firebase messaging instance is null. Check if FIREBASE_CREDENTIALS path in .env is correct and the file exists.");
+            }
+
             $notification = Notification::create($title, $body);
             $message = CloudMessage::new()->withNotification($notification);
 
