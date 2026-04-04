@@ -40,7 +40,9 @@ class BarberController extends Controller
             
             $query = Barber::query();
             
-            if ($status) {
+            if ($status == 'Pending' || $status == 'Pendding') {
+                $query->whereIn('status', ['Pending', 'Pendding']);
+            } elseif ($status) {
                 $query->where('status', $status);
             }
 

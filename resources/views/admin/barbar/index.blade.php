@@ -96,8 +96,9 @@
                                             <td class="text-right">
                                                 <div style="display: flex; justify-content: flex-end; gap: 5px; align-items: center;">
                                                     @if($barbar->status != 'Active')
-                                                        <a href="{{ route('barberactivestatus', $barbar->id) }}" class="btn btn-xs btn-primary" style="background: var(--primary); border: none; border-radius: 4px;"><i class="fa fa-check"></i></a>
+                                                        <a href="{{ route('barberactivestatus', $barbar->id) }}" class="btn btn-xs btn-primary" style="background: var(--primary); border: none; border-radius: 4px;" title="Approve Account"><i class="fa fa-check"></i></a>
                                                     @endif
+                                                    <a href="{{ route('barberprofileadmin', $barbar->user_id ?: $barbar->id) }}" class="btn btn-xs btn-info" style="border: none; border-radius: 4px;" title="View Profile"><i class="fa fa-user"></i></a>
                                                     <div class="btn-group">
                                                         <button class="btn btn-xs btn-white dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 8px;">
                                                             <i class="fa fa-ellipsis-v"></i>

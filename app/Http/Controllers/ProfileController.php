@@ -51,8 +51,11 @@ class ProfileController extends Controller
     public function barberprofileadmin($id)
     {
         //
-        $userid      = $id;
-        $user        = Barber::where('user_id',$userid)->first();
+        $user = Barber::find($id);
+        if (!$user) {
+            abort(404, 'Barber not found');
+        }
+        $userid = $user->user_id ? $user->user_id : $user->id;
         $salonbarber = Barber::where('barber_of',$userid)->get();
         $docs        = BarberDoc::where('barber_id',$userid)->get();
         $slots       = BarberTimeSlot::where('barber_id',$userid)->with('barber')->get();

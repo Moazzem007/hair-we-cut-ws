@@ -318,18 +318,35 @@
                     <div class="ibox-content ">
                         <h3 class="">Barber Certificates</h3>
                         <div class="row">
+                            @if(isset($user->attachment_url) && $user->attachment_url)
+                                <div class="col-md-6 m-b-xs text-center">
+                                    <h5 class="text-uppercase bg-primary text-center" style="line-height:20px; padding:5px;">
+                                        Registration Attachment
+                                    </h5>
+                                    @if (strtolower(pathinfo($user->attachment_url, PATHINFO_EXTENSION)) == 'pdf')
+                                        <img src="{{ asset('PDF_file_icon.svg') }}" alt="" width="80" style="margin:0 auto;">
+                                        <br><br>
+                                    @else
+                                        <i class="fa fa-file-image-o fa-5x text-muted" style="margin-bottom: 10px;"></i>
+                                        <br><br>
+                                    @endif
+                                    <a href="{{ asset('barberDoc/' . basename($user->attachment_url)) }}" target="_blank" class="btn btn-sm btn-primary"> 
+                                        <i class="fa fa-download"></i> View / Download
+                                    </a>
+                                </div>
+                            @endif
                             @foreach ($docs as $doc)
-                                <div class="col-md-6 m-b-xs">
+                                <div class="col-md-6 m-b-xs text-center">
                                     <h5 class="text-uppercase bg-info text-center" style="line-height:20px; padding:5px;">
                                         {{ $doc->title }}</h5>
                                     @if ($doc->type == 'PDF')
-                                        <img src="{{ asset('PDF_file_icon.svg') }}" alt="" width="80">
+                                        <img src="{{ asset('PDF_file_icon.svg') }}" alt="" width="80" style="margin:0 auto;">
                                         <br><br>
-                                        <a href="{{ asset('barberDoc/' . $doc->image) }}" download> <i
+                                        <a href="{{ asset('barberDoc/' . $doc->image) }}" target="_blank" class="btn btn-sm btn-info"> <i
                                                 class="fa fa-download"></i>
                                             Download</a>
                                     @else
-                                        <img alt="image" class="img-responsive"
+                                        <img alt="image" class="img-responsive" style="margin:0 auto;"
                                             src="{{ asset('barberDoc/' . $doc->image) }}">
                                     @endif
                                 </div>
