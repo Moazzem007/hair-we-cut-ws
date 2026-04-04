@@ -30,6 +30,12 @@ class CustomerAuthController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
+        $user = auth('customer')->user();
+        if (!$user->is_verified) {
+            auth('customer')->logout();
+            return response()->json(['error' => 'Please verify your OTP before logging in.'], 403);
+        }
+
         return $this->respondWithToken($token);
     }
 

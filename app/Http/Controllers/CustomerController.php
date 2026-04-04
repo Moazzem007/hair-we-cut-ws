@@ -133,12 +133,16 @@ class CustomerController extends Controller
                 $token = '';
             }
 
+            $otp = rand(100000, 999999);
+
             $data = array(
                 'name'         => $request->name,
                 'email'        => $request->email,
                 'password'     => bcrypt($request->password),
                 'contact'      => $request->contact,
                 'device_token' => $token,
+                'otp'          => (string) $otp,
+                'is_verified'  => 0,
             );
 
             $result = Customer::create($data);
@@ -148,7 +152,7 @@ class CustomerController extends Controller
                 'contact'  => $request->contact,
                 'email'    => $request->email,
                 'password' => $request->password,
-                'otp'      => $request->otp ? $request->otp : 0,
+                'otp'      => $otp,
             );
 
             if ($result){
@@ -172,6 +176,56 @@ class CustomerController extends Controller
                 'Erorr'   => $e->getMessage(),
             ]);
 
+        }
+    }
+
+    public function verifyOtp(Request $request)
+    {
+        $role = [
+            'email' => 'required|email',
+            'otp'   => 'required',
+        ];
+
+        $validateData = Validator::make($request->all(), $role);
+
+        if ($validateData->fails()) {
+            return response()->json([
+                'message' => 'Invalid data sent',
+                'Error'   => $validateData->errors(),
+            ], 400);
+        }
+
+        try {
+            $customer = Customer::where('email', $request->email)->first();
+
+            if (!$customer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found',
+                ], 404);
+            }
+
+            if ($customer->otp === $request->otp) {
+                $customer->is_verified = 1;
+                $customer->otp = null; // optionally clear the OTP or keep it empty
+                $customer->update();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'OTP verified successfully. You can now login.',
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid OTP.',
+                ], 400);
+            }
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'Error'   => $e->getMessage(),
+            ], 500);
         }
     }
 

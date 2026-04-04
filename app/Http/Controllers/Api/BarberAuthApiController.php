@@ -218,6 +218,12 @@ class BarberAuthApiController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
+        $barber = auth('barber')->user();
+        if ($barber && strtolower((string) $barber->status) === 'pending') {
+            auth('barber')->logout();
+            return response()->json(['error' => 'Your account is pending approval by admin.'], 403);
+        }
+
         return response()->json([
             'token' => $token
         ]);

@@ -273,6 +273,9 @@ Route::group(['prefix' => 'customer'], function () {
   // CUSTOMER Login
   Route::post('login', [CustomerAuthController::class, 'login']);
 
+  // OTP Verification
+  Route::post('verify-otp', [CustomerController::class, 'verifyOtp']);
+
   // Social Login (Google & Facebook)
   Route::post('google-login', [SocialAuthController::class, 'googleLogin']);
   Route::post('facebook-login', [SocialAuthController::class, 'facebookLogin']);
