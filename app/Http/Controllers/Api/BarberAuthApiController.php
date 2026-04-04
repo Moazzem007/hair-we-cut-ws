@@ -219,7 +219,7 @@ class BarberAuthApiController extends Controller
         }
 
         $barber = auth('barber')->user();
-        if ($barber && strtolower((string) $barber->status) === 'pending') {
+        if ($barber && ($barber->status === 'Pending' || $barber->status === 'Pendding')) {
             auth('barber')->logout();
             return response()->json(['error' => 'Your account is pending approval by admin.'], 403);
         }
