@@ -265,6 +265,7 @@
                             <li><a href="{{ route('productdash.index') }}">Marketplace</a></li>
                             <li><a href="{{ route('adminproductorder') }}">Orders</a></li>
                             <li><a href="{{ url('wallet') }}">Financial Wallets</a></li>
+                            <li><a href="{{ route('admin.payout_requests') }}">Payout Requests</a></li>
                         </ul>
                     </li>
 
