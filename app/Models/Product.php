@@ -37,5 +37,8 @@ class Product extends Model
 
 
 
-
+    public function creatorBarber()
+    {
+        return $this->belongsTo('App\Models\Barber', 'barber_id', 'id');
+    }
 }

@@ -176,6 +176,12 @@ Route::group(['prefix' => 'barber'], function () {
 
     // -----------------------------Products Related Routes --------------------------------------
 
+    // Partner Product Management APIs
+    Route::get('partner/products/list', [BarberProductApiController::class, 'partner_products_list']);
+    Route::post('partner/products/add', [BarberProductApiController::class, 'add_partner_product']);
+    Route::post('partner/products/update/{id}', [BarberProductApiController::class, 'update_partner_product']);
+    Route::get('partner/products/delete/{id}', [BarberProductApiController::class, 'delete_partner_product']);
+
     Route::get('barberproduct', [BarberProductApiController::class, 'barberproduct']);
 
     // Barber Product Stock (Current)
