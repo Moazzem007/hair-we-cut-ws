@@ -83,6 +83,48 @@ class BarberController extends Controller
         return redirect()->back();
     }
 
+    public function payout_requests() {
+        $requests = \App\Models\PayoutRequest::with('barber')->orderBy('id', 'desc')->get();
+        return view('admin.barbar.payout_requests', compact('requests'));
+    }
+
+    public function approve_payout($id) {
+        $req = \App\Models\PayoutRequest::findOrFail($id);
+        if ($req->status != 'pending') return redirect()->back()->with('error', 'Request already processed');
+        
+        $req->status = 'approved';
+        $req->save();
+
+        $mixid  = Wallet::max('inv');
+        $inv    = $mixid + 1;
+
+        $paymentData = array(
+            'user_id'        => 0,
+            'barber_id'      => $req->barber_id,
+            'salon_id'       => 0,
+            'appointment_id' => 0,
+            'inv'            => $inv,
+            'debit'          => 0,
+            'credit'         => $req->amount,
+            'com_amount'     => 0,
+            'pay_status'     => 'UNPAID', // Ensures it accurately subtracts from floating balance
+            'description'    => 'Payout Approved (ID: '.$req->id.')',
+        );
+
+        Wallet::create($paymentData);
+        return redirect()->back()->with('success', 'Payout Approved');
+    }
+
+    public function reject_payout($id) {
+        $req = \App\Models\PayoutRequest::findOrFail($id);
+        if ($req->status != 'pending') return redirect()->back()->with('error', 'Request already processed');
+        
+        $req->status = 'rejected';
+        $req->save();
+
+        return redirect()->back()->with('success', 'Payout Rejected');
+    }
+
     public function barbercommitionpayment($id)
     {
 

@@ -14,10 +14,11 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Service;
 use App\Models\Commission;
 use App\Models\AppointmentLog;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use App\Mail\UserSignUp;
+use App\Mail\ForgotPassword;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Stripe;
 
 
@@ -302,11 +303,23 @@ class CustomerController extends Controller
             $customer = Customer::where('email','=',$request->email)->first();
 
             if ($customer) {
+                // Generate OTP
+                $otp = rand(100000, 999999);
+                $customer->otp = (string) $otp;
+                $customer->update();
+
+                // Send Email
+                try {
+                    Mail::to($customer->email)->send(new ForgotPassword($otp));
+                    Log::info('Forgot password mail sent successfully to user: ' . $customer->email);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send forgot password mail to user: ' . $customer->email . ' Error: ' . $e->getMessage());
+                }
 
                 return  response()->json([
                     'success' => true,
                     'id'      => $customer->id,
-                    'Message' => 'Valid User',
+                    'Message' => 'Valid User Check your email for OTP',
                 ]);
 
             }else{
@@ -334,6 +347,7 @@ class CustomerController extends Controller
 
             'id'       => 'required',
             'password' => 'required|min:8|confirmed',
+            'otp'      => 'required',
         ];
 
         $validateData = Validator::make($request->all(),$role);
@@ -348,8 +362,17 @@ class CustomerController extends Controller
 
         try {
 
-            $customer           = Customer::find($request->id);
+            $customer = Customer::find($request->id);
+
+            if (!$customer || $customer->otp !== $request->otp) {
+                return response()->json([
+                    'success' => false,
+                    'Message' => 'Invalid OTP or Customer.',
+                ], 400);
+            }
+
             $customer->password = bcrypt($request->password);
+            $customer->otp = null;
             $result             = $customer->update();
 
             if ( $result) {
@@ -575,16 +598,20 @@ class CustomerController extends Controller
 
             $appdata = Appointment::with('service')->find($appid);
 
+            $commissionSetting = \App\Models\Commission::latest()->first();
+            $percent = $commissionSetting ? $commissionSetting->percent : 20;
+            $com = ($amount * $percent) / 100;
+            $debitAmount = $amount - $com;
+
             $mixid       = Wallet::max('inv');
             $inv         = $mixid + 1;                                 // Invoice
-            $com         = $amount - $appdata->service->price;
             $paymentData = array(
                 'user_id'        => $user->id,
                 'barber_id'      => $appdata->barber_id,
                 'salon_id'       => $appdata->salon_id,
                 'appointment_id' => $appid,
                 'inv'            => $inv,
-                'debit'          => $appdata->service->price,
+                'debit'          => $debitAmount,
                 'credit'         => 0,
                 'com_amount'     => $com,
                 'description'    => 'Appointment Booking Payment',
@@ -643,6 +670,11 @@ class CustomerController extends Controller
             $amount = $request->data['amount'];
 
             $appdata = Appointment::find($appid);
+            
+            $commissionSetting = \App\Models\Commission::latest()->first();
+            $percent = $commissionSetting ? $commissionSetting->percent : 20;
+            $com = ($amount * $percent) / 100;
+            $debitAmount = $amount - $com;
 
             $mixid    = Wallet::max('inv');
             $inv      = $mixid + 1;    // Invoice
@@ -654,8 +686,9 @@ class CustomerController extends Controller
                 'salon_id'       => $appdata->salon_id,
                 'appointment_id' => $appid,
                 'inv'            => $inv,
-                'debit'          => $amount,
+                'debit'          => $debitAmount,
                 'credit'         => 0,
+                'com_amount'     => $com,
                 'description'    => 'Appointment Booking Payment',
 
             );

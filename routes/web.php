@@ -92,6 +92,9 @@ Route::group(['middleware' => ['auth']], function () {
         Route::resource('barbers',BarberController::class);
         Route::get('barberactivestatus/{id}', [BarberController::class,'barberactivestatus'])->name('barberactivestatus');
         Route::get('paybarberAmount/{id}', [BarberController::class,'paybarberAmount'])->name('paybarberAmount');
+        Route::get('payout_requests', [BarberController::class, 'payout_requests'])->name('admin.payout_requests');
+        Route::get('approve_payout/{id}', [BarberController::class, 'approve_payout'])->name('admin.approve_payout');
+        Route::get('reject_payout/{id}', [BarberController::class, 'reject_payout'])->name('admin.reject_payout');
         Route::get('barbercommitionpayment/{id}', [BarberController::class,'barbercommitionpayment'])->name('barbercommitionpayment');
 
         // // Delete

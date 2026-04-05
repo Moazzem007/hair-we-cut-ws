@@ -583,8 +583,12 @@ class PaymentController extends Controller
         $maxInv = Wallet::max('inv');
 
         $nextInv = ($maxInv ?? 0) + 1;
-
-        $debitAmount = (floatval($order->amount) / 100) * 0.8;
+        
+        $amount = floatval($order->amount) / 100;
+        $commissionSetting = \App\Models\Commission::latest()->first();
+        $percent = $commissionSetting ? $commissionSetting->percent : 20;
+        $com = ($amount * $percent) / 100;
+        $debitAmount = $amount - $com;
 
         $barber = Barber::find($appointment->barber_id);
 
@@ -655,7 +659,7 @@ class PaymentController extends Controller
             'inv'            => $nextInv,
             'debit'          => $debitAmount,
             'credit'         => 0,
-            'com_amount'     => 0,
+            'com_amount'     => $com,
             'description'    => 'Appointment Booking Payment',
         ]);
 

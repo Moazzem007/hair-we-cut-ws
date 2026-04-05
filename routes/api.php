@@ -198,6 +198,7 @@ Route::group(['prefix' => 'barber'], function () {
 
     // Barber Trasaction details
     Route::get('barberpayment', [BarberApiController::class, 'barberpayment']);
+    Route::post('request_payout', [BarberApiController::class, 'request_payout']);
 
     // Barber Orders details
     Route::get('orders', [BarberProductApiController::class, 'orders']);

@@ -16,8 +16,10 @@ use App\Models\ProductWallet;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
-
 use Intervention\Image\ImageManagerStatic as Image;
+use App\Mail\ForgotPassword;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class BarberApiController extends Controller
 {
@@ -590,11 +592,23 @@ class BarberApiController extends Controller
             $user = User::where('email','=',$request->email)->first();
 
             if ($user) {
+                // Generate OTP
+                $otp = rand(100000, 999999);
+                $user->otp = (string) $otp;
+                $user->update();
+
+                // Send Email
+                try {
+                    Mail::to($user->email)->send(new ForgotPassword($otp));
+                    Log::info('Forgot password mail sent successfully to barber/user: ' . $user->email);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send forgot password mail to barber/user: ' . $user->email . ' Error: ' . $e->getMessage());
+                }
 
                 return  response()->json([
                     'success' => true,
                     'id'      => $user->id,
-                    'Message' => 'Valid User',
+                    'Message' => 'Valid User Check your email for OTP',
                 ]);
                 
             }else{
@@ -621,6 +635,7 @@ class BarberApiController extends Controller
             
             'id'       => 'required',
             'password' => 'required|min:8|confirmed',
+            'otp'      => 'required',
         ];
 
         $validateData = Validator::make($request->all(),$role);
@@ -635,14 +650,27 @@ class BarberApiController extends Controller
 
         try {
 
-            $user           = User::find($request->id);
+            $user = User::find($request->id);
+            
+            if (!$user || $user->otp !== $request->otp) {
+                return response()->json([
+                    'success' => false,
+                    'Message' => 'Invalid OTP or User.',
+                ], 400);
+            }
+
             $user->password = bcrypt($request->password);
+            $user->otp = null;
             $result         = $user->update();
 
            if($result){
                 $barber           = Barber::where('user_id',$request->id)->first();
-                $barber->password = bcrypt($request->password);
-                $result2          = $barber->update();
+                if ($barber) {
+                    $barber->password = bcrypt($request->password);
+                    $result2          = $barber->update();
+                } else {
+                    $result2 = true;
+                }
            }
 
             if ($result2) {
@@ -963,5 +991,68 @@ public function addBusnissBarber(Request $request)
             ]);
         }
     }
-   
+
+    public function request_payout(Request $request)
+    {
+        $role = [
+            'amount' => 'required|numeric|min:50',
+        ];
+
+        $validateData = Validator::make($request->all(), $role);
+
+        if ($validateData->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid data send',
+                'Error'   => $validateData->errors(),
+            ], 400);
+        }
+
+        try {
+            $user = Auth::user();
+            // Calculate un-withdrawn balance
+            $balance = Wallet::where(['barber_id' => $user->id, 'pay_status' => 'UNPAID'])
+                             ->selectRaw('SUM(debit) - SUM(credit) as total')
+                             ->first();
+                             
+            $totalBalance = $balance->total ?? 0;
+
+            if ($request->amount > $totalBalance) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Requested amount exceeds available UNPAID balance.',
+                ], 400);
+            }
+
+            // Check if there's already a pending request
+            $pendingRequest = \App\Models\PayoutRequest::where('barber_id', $user->id)
+                                                       ->where('status', 'pending')
+                                                       ->first();
+            if ($pendingRequest) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You already have a pending payout request. Please wait for its approval.',
+                ], 400);
+            }
+
+            $payout = \App\Models\PayoutRequest::create([
+                'barber_id' => $user->id,
+                'amount'    => $request->amount,
+                'status'    => 'pending'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payout request submitted successfully.',
+                'data'    => $payout
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'Error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
 }
