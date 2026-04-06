@@ -38,8 +38,8 @@
                                                 <small class="text-muted">{{ $appointment->barber ? $appointment->barber->salon : '' }}</small>
                                             </td>
                                             <td>
-                                                <strong>{{ $appointment->customer->name }}</strong><br>
-                                                <small class="text-muted">{{ $appointment->customer->contact }}</small>
+                                                <strong>{{ optional($appointment->customer)->name ?? 'Unknown Customer' }}</strong><br>
+                                                <small class="text-muted">{{ optional($appointment->customer)->contact ?? 'No Contact' }}</small>
                                             </td>
                                             <td>
                                                 <span class="label label-white"><i class="fa fa-calendar"></i> {{ $appointment->date }}</span><br>
@@ -71,8 +71,12 @@
                                                         
                                                         <li class="divider"></li>
                                                         <li class="dropdown-header">Contact Customer</li>
-                                                        <li><a href="tel:{{ $appointment->customer->contact }}" style="padding: 8px 15px;"><i class="fa fa-phone m-r-xs text-primary"></i> Call Customer</a></li>
-                                                        <li><a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $appointment->customer->contact) }}" target="_blank" style="padding: 8px 15px;"><i class="fa fa-whatsapp m-r-xs text-success"></i> WhatsApp</a></li>
+                                                        @if($appointment->customer && $appointment->customer->contact)
+                                                            <li><a href="tel:{{ $appointment->customer->contact }}" style="padding: 8px 15px;"><i class="fa fa-phone m-r-xs text-primary"></i> Call Customer</a></li>
+                                                            <li><a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $appointment->customer->contact) }}" target="_blank" style="padding: 8px 15px;"><i class="fa fa-whatsapp m-r-xs text-success"></i> WhatsApp</a></li>
+                                                        @else
+                                                            <li><span style="padding: 8px 15px; color: #999;"><i class="fa fa-phone m-r-xs"></i> No Contact Info</span></li>
+                                                        @endif
                                                         
                                                         <li class="divider"></li>
                                                         <li class="dropdown-header">Manage Status</li>
