@@ -15,7 +15,7 @@ class CommissionController extends Controller
     public function index()
     {
         //
-        $coms = Commission::all();
+        $coms = Commission::latest()->get();
         return view('admin.commission.index',get_defined_vars());
     }
 
