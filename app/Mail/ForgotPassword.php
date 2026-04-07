@@ -30,7 +30,8 @@ class ForgotPassword extends Mailable
      */
     public function build()
     {
-        return $this->subject('Forgot Password OTP')
+        return $this->from('hairwecut@gmail.com')
+                    ->subject('Forgot Password OTP')
                     ->view('emails.forgot_password');
     }
 }
